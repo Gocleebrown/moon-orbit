@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Same Moon, different view</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center}
+h1{font-size:20px;margin:10px 0 2px}
+#wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:flex-start;padding:8px}
+canvas{background:#000;border-radius:8px;max-width:94vw;height:auto}
+.ctl{width:min(92vw,820px);display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+input[type=range]{flex:1;min-width:220px;height:28px}
+button{background:#f28c1a;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:bold;font-size:15px;cursor:pointer}
+.sub{font-size:14px;color:#ccc}
+#lat{font-size:18px;font-weight:bold;color:#ffd84a;min-width:170px}
+.cap{text-align:center;font-size:14px;color:#bbb;margin-top:4px}
+</style></head><body>
+<h1>Same Moon, different view</h1>
+<div id="wrap">
+<div><canvas id="e" width="460" height="400"></canvas><div class="cap">Looking down on Earth from space. The Moon is far to the right.</div></div>
+<div><canvas id="m" width="320" height="320"></canvas><div class="cap">What the person sees. The yellow dot is the Moon's north pole.</div></div>
+</div>
+<div class="ctl"><span id="lat"></span>
+<input id="s" type="range" min="-90" max="90" step="1" value="-35" aria-label="Where the person stands (latitude)"></div>
+<div class="ctl"><button data-l="51">UK (London)</button><button data-l="0">Equator</button><button data-l="-35">New Zealand (Northland)</button></div>
+<div class="ctl sub">Slide the person from the North Pole to the South Pole. The Moon never changes, but which way is "up" for the person does, so the Moon appears to turn. (Simplified model, with the Moon straight out to the side of Earth.)</div>
+<script>
+const e=document.getElementById('e'),x=e.getContext('2d'),m=document.getElementById('m'),y=m.getContext('2d');
+const s=document.getElementById('s'),lt=document.getElementById('lat');
+function label(l){const a=Math.abs(l);return a<3?'Equator':(l>0?a+'° North':a+'° South')}
+function draw(){
+ const l=+s.value,p=l*Math.PI/180;
+ lt.textContent=label(l);
+ // Earth view
+ x.fillStyle='#000';x.fillRect(0,0,460,400);
+ const cx=170,cy=200,r=95;
+ // sunlight not needed. Moon far right
+ x.fillStyle='#ccc';x.beginPath();x.arc(420,cy,16,0,7);x.fill();
+ // Earth
+ x.fillStyle='#2a6fd6';x.beginPath();x.arc(cx,cy,r,0,7);x.fill();
+ x.fillStyle='#4aa84a';x.beginPath();x.arc(cx-20,cy-35,28,0,7);x.fill();x.beginPath();x.arc(cx+30,cy+40,22,0,7);x.fill();x.beginPath();x.arc(cx+40,cy-30,16,0,7);x.fill();
+ // axis
+ x.strokeStyle='#fff';x.lineWidth=1.5;x.setLineDash([5,5]);x.beginPath();x.moveTo(cx,cy-r-30);x.lineTo(cx,cy+r+30);x.stroke();x.setLineDash([]);
+ x.fillStyle='#fff';x.font='bold 15px Arial';x.textAlign='center';x.fillText('North Pole',cx,cy-r-38);x.fillText('South Pole',cx,cy+r+48);
+ // person on side facing Moon
+ const px=cx+r*Math.cos(p),py=cy-r*Math.sin(p),nx=Math.cos(p),ny=-Math.sin(p);
+ x.strokeStyle='#ffd84a';x.lineWidth=3;x.beginPath();x.moveTo(px,py);x.lineTo(px+nx*34,py+ny*34);x.stroke();
+ x.fillStyle='#ffd84a';x.beginPath();x.arc(px+nx*40,py+ny*40,6,0,7);x.fill();
+ // dotted line to moon
+ x.setLineDash([4,6]);x.strokeStyle='#8cf';x.lineWidth=1.5;x.beginPath();x.moveTo(px+nx*48,py+ny*48);x.lineTo(404,cy);x.stroke();x.setLineDash([]);
+ x.fillStyle='#ffd84a';x.font='13px Arial';x.textAlign='left';
+ x.fillText('head = "up" for them',Math.min(px+nx*54+4,320),py+ny*54+(ny<0?-4:14));
+ // Moon view: rotate. rotation = 90 - lat degrees (clockwise), 0 at north pole
+ y.fillStyle='#000';y.fillRect(0,0,320,320);
+ const rot=(90-l)*Math.PI/180;
+ y.save();y.translate(160,160);y.rotate(rot);
+ // moon disc
+ y.fillStyle='#d9d9d2';y.beginPath();y.arc(0,0,120,0,7);y.fill();
+ // maria (dark patches), asymmetric so orientation is obvious
+ y.fillStyle='#8c8c86';
+ [[-40,-55,38,30],[10,-60,34,26],[-60,-10,30,40],[-15,5,38,30],[35,-15,26,34],[-10,60,30,22]].forEach(b=>{y.beginPath();y.ellipse(b[0],b[1],b[2],b[3],0.3,0,7);y.fill();});
+ y.fillStyle='#a8a8a2';[[50,50,12],[-70,50,9],[70,-55,8]].forEach(c=>{y.beginPath();y.arc(c[0],c[1],c[2],0,7);y.fill();});
+ // north pole marker
+ y.fillStyle='#ffd84a';y.beginPath();y.arc(0,-120,8,0,7);y.fill();
+ y.restore();
+ y.fillStyle='#fff';y.font='bold 14px Arial';y.textAlign='center';y.fillText('top of what they see',160,16);
+ y.beginPath();y.moveTo(160,22);y.lineTo(154,32);y.lineTo(166,32);y.fill();
+}
+s.oninput=draw;
+document.querySelectorAll('button').forEach(b=>b.onclick=()=>{s.value=b.dataset.l;draw()});
+draw();
+</script></body></html>
