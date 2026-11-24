@@ -21,11 +21,15 @@ button{background:#f28c1a;color:#fff;border:0;border-radius:8px;padding:8px 12px
 <div class="ctl"><span id="lat"></span>
 <input id="s" type="range" min="-90" max="90" step="1" value="-35" aria-label="Where the person stands (latitude)"></div>
 <div class="ctl"><button data-l="51">UK (London)</button><button data-l="0">Equator</button><button data-l="-35">New Zealand (Northland)</button></div>
-<div class="ctl sub">Slide the person from the North Pole to the South Pole. The Moon never changes, but which way is "up" for the person does, so the Moon appears to turn. (Simplified model, with the Moon straight out to the side of Earth.)</div>
+<div class="ctl"><span id="ph" style="font-size:18px;font-weight:bold;color:#ffd84a;min-width:170px"></span>
+<input id="p" type="range" min="0" max="359" step="1" value="90" aria-label="Moon phase"></div>
+<div class="ctl"><button class="pb" data-p="0">New</button><button class="pb" data-p="90">First quarter</button><button class="pb" data-p="180">Full</button><button class="pb" data-p="270">Third quarter</button></div>
+<div class="ctl sub">Pick a phase, then slide the person from the North Pole to the South Pole. The Moon never changes, but which way is "up" for the person does, so the Moon appears to turn. (Simplified model, with the Moon straight out to the side of Earth.)</div>
 <script>
 const e=document.getElementById('e'),x=e.getContext('2d'),m=document.getElementById('m'),y=m.getContext('2d');
 const s=document.getElementById('s'),lt=document.getElementById('lat');
 function label(l){const a=Math.abs(l);return a<3?'Equator':(l>0?a+'° North':a+'° South')}
+function pname(a){const q=[[22.5,'New Moon'],[67.5,'Waxing Crescent'],[112.5,'First Quarter'],[157.5,'Waxing Gibbous'],[202.5,'Full Moon'],[247.5,'Waning Gibbous'],[292.5,'Third Quarter'],[337.5,'Waning Crescent'],[361,'New Moon']];for(const z of q)if(a<z[0])return z[1]}
 function draw(){
  const l=+s.value,p=l*Math.PI/180;
  lt.textContent=label(l);
@@ -60,11 +64,21 @@ function draw(){
  y.fillStyle='#a8a8a2';[[50,50,12],[-70,50,9],[70,-55,8]].forEach(c=>{y.beginPath();y.arc(c[0],c[1],c[2],0,7);y.fill();});
  // north pole marker
  y.fillStyle='#ffd84a';y.beginPath();y.arc(0,-120,8,0,7);y.fill();
+ // phase shadow
+ const ang=+document.getElementById('p').value,k=Math.cos(ang*Math.PI/180),rx=Math.abs(k)*120,wax=ang<180;
+ document.getElementById('ph').textContent=pname(ang);
+ y.fillStyle='rgba(0,0,0,0.9)';y.beginPath();y.arc(0,0,120,0,7);y.moveTo(0,-120);
+ if(wax){y.arc(0,0,120,-Math.PI/2,Math.PI/2,false);y.ellipse(0,0,rx,120,0,Math.PI/2,-Math.PI/2,k>0);}
+ else{y.arc(0,0,120,Math.PI/2,-Math.PI/2,false);y.ellipse(0,0,rx,120,0,-Math.PI/2,Math.PI/2,k>0);}
+ y.fill('evenodd');
+ y.fillStyle='#ffd84a';y.beginPath();y.arc(0,-120,8,0,7);y.fill();
  y.restore();
  y.fillStyle='#fff';y.font='bold 14px Arial';y.textAlign='center';y.fillText('top of what they see',160,16);
  y.beginPath();y.moveTo(160,22);y.lineTo(154,32);y.lineTo(166,32);y.fill();
 }
 s.oninput=draw;
-document.querySelectorAll('button').forEach(b=>b.onclick=()=>{s.value=b.dataset.l;draw()});
+const pS=document.getElementById('p'),pl=document.getElementById('ph');pS.oninput=draw;
+document.querySelectorAll('button[data-l]').forEach(b=>b.onclick=()=>{s.value=b.dataset.l;draw()});
+document.querySelectorAll('.pb').forEach(b=>b.onclick=()=>{pS.value=b.dataset.p;draw()});
 draw();
 </script></body></html>
