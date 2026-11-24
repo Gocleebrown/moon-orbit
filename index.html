@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Moon phases: orbit simulator</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center}
+h1{font-size:20px;margin:10px 0 4px}
+#wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;padding:8px}
+canvas{background:#000;border-radius:8px;max-width:96vw;height:auto}
+#view{background:#000;border-radius:8px}
+.ctl{width:min(92vw,820px);display:flex;align-items:center;gap:12px;margin:6px 0;flex-wrap:wrap}
+input[type=range]{flex:1;min-width:200px;height:28px}
+button{background:#f28c1a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:bold;font-size:15px;cursor:pointer}
+label{font-size:15px}
+#name{font-size:22px;font-weight:bold;color:#ffd84a;min-width:200px}
+.sub{font-size:13px;color:#bbb}
+</style></head><body>
+<h1>The Moon orbiting Earth</h1>
+<div id="wrap">
+<canvas id="c" width="560" height="560"></canvas>
+</div>
+<div class="ctl"><button id="play">Play</button>
+<input id="s" type="range" min="0" max="360" step="0.5" value="0" aria-label="Moon position"></div>
+<div class="ctl sub">Drag the slider, or press Play, to move the Moon around its orbit. The Sun always lights half of the Moon.</div>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const s=document.getElementById('s'),pb=document.getElementById('play');
+const CX=300,CY=280,R=200;let ang=0,playing=false;
+// angle 0 = new moon (Moon between Earth and Sun, sunlight from left). Moon angle measured so 0 is on the Sun side.
+function phaseName(a){const p=[[22.5,'New Moon'],[67.5,'Waxing Crescent'],[112.5,'First Quarter'],[157.5,'Waxing Gibbous'],[202.5,'Full Moon'],[247.5,'Waning Gibbous'],[292.5,'Third Quarter'],[337.5,'Waning Crescent'],[361,'New Moon']];for(const q of p)if(a<q[0])return q[1];return 'New Moon'}
+function draw(){
+ x.clearRect(0,0,560,560);x.fillStyle='#000';x.fillRect(0,0,560,560);
+ // sunlight arrows from left
+ x.strokeStyle='#ffff66';x.fillStyle='#ffff66';x.lineWidth=2;
+ for(let i=0;i<7;i++){const yy=80+i*70;x.beginPath();x.moveTo(20,yy);x.lineTo(90,yy);x.stroke();x.beginPath();x.moveTo(92,yy);x.lineTo(80,yy-5);x.lineTo(80,yy+5);x.fill();}
+ x.save();x.translate(14,300);x.rotate(-Math.PI/2);x.font='bold 18px Arial';x.textAlign='center';x.fillText('Sunlight',0,-2);x.restore();
+ // orbit
+ x.strokeStyle='#fff';x.lineWidth=1.5;x.beginPath();x.arc(CX,CY,R,0,7);x.stroke();
+ // Earth: left half lit (faces sun)
+ x.fillStyle='#2a6fd6';x.beginPath();x.arc(CX,CY,34,0,7);x.fill();
+ x.fillStyle='#4aa84a';x.beginPath();x.arc(CX-8,CY-6,14,0,7);x.fill();x.beginPath();x.arc(CX+12,CY+10,10,0,7);x.fill();
+ x.fillStyle='rgba(0,0,20,.62)';x.beginPath();x.arc(CX,CY,34,-Math.PI/2,Math.PI/2);x.fill();
+ // person on Earth, side facing Moon
+ const a=ang*Math.PI/180;
+ const mx=CX-R*Math.cos(a),my=CY+R*Math.sin(a); // angle 0 => Moon at left (sun side)
+ const ux=(mx-CX)/R,uy=(my-CY)/R;
+ x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.moveTo(CX+ux*40,CY+uy*40);x.lineTo(CX+ux*58,CY+uy*58);x.stroke();
+ x.fillStyle='#fff';x.beginPath();x.arc(CX+ux*62,CY+uy*62,4,0,7);x.fill();
+
+ // Moon: left half (sun side) lit
+ const mr=16;x.fillStyle='#ddd';x.beginPath();x.arc(mx,my,mr,Math.PI/2,-Math.PI/2);x.fill();
+ x.fillStyle='#333';x.beginPath();x.arc(mx,my,mr,-Math.PI/2,Math.PI/2);x.fill();
+ x.strokeStyle='#777';x.lineWidth=1;x.beginPath();x.arc(mx,my,mr,0,7);x.stroke();
+}
+s.oninput=()=>{ang=+s.value;draw()};
+pb.onclick=()=>{playing=!playing;pb.textContent=playing?'Pause':'Play'};
+let last=0;function tick(t){if(playing){ang=(ang+(t-last)*0.03)%360;s.value=ang;draw()}last=t;requestAnimationFrame(tick)}
+draw();requestAnimationFrame(tick);
+</script></body></html>
