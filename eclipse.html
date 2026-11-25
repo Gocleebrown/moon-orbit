@@ -17,7 +17,6 @@ canvas{background:#000;border-radius:8px;max-width:96vw;height:auto}
 input[type=range]{flex:1;min-width:160px;height:26px}
 button.p{background:#f28c1a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:bold;font-size:15px;cursor:pointer}
 label{font-size:15px}
-#mode3 .lv{padding:7px 10px;font-size:14px}
 #msg{font-size:15px;color:#ddd;width:min(92vw,640px);margin:4px 0;min-height:40px}
 #stat{font-size:20px;font-weight:bold;color:#ffd84a;height:26px}
 </style></head><body>
@@ -26,6 +25,7 @@ label{font-size:15px}
 <button class="lv" data-l="1">Level 1<small>Earth's shadow cone</small></button>
 <button class="lv" data-l="2">Level 2<small>Add the Moon</small></button>
 <button class="lv" data-l="3">Level 3<small>Side view: why not every month?</small></button>
+<button class="lv" data-l="4">Level 4<small>Why only twice a year?</small></button>
 </div>
 <div id="main">
 <canvas id="c" width="640" height="560"></canvas>
@@ -33,18 +33,17 @@ label{font-size:15px}
 <div class="ctl"><button class="p" id="play">Play</button><button class="p" id="spd" style="background:#3a7bd5">Speed: Normal</button>
 <span id="elab">Earth's orbit</span><input id="se" type="range" min="0" max="360" step="0.5" value="200"></div>
 <div class="ctl" id="mrow"><span>Moon's orbit</span><input id="sm" type="range" min="0" max="360" step="0.5" value="150"></div>
-<div class="ctl"><label><input type="checkbox" id="cone" checked> Show shadow cone</label></div>
-<div class="ctl" id="mode3"><span style="min-width:0">Side view:</span><button class="lv" data-m="0">The Moon's orbit seems to change</button><button class="lv" data-m="1">Earth's orbit seems to tilt</button></div>
+<div class="ctl" id="crow"><label><input type="checkbox" id="cone" checked> Show shadow cone</label></div>
 <div id="msg"></div>
 </div></div>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d');
 const se=document.getElementById('se'),sm=document.getElementById('sm'),pb=document.getElementById('play'),cb=document.getElementById('cone');
 const CX=320,CY=280,R=135,ER=24,L=105,MR=7,MO=64;
-let side3=0,spdI=0;const SPD=[['Normal',1],['Slow',.35],['Very slow',.12]];let level=1,ang=+se.value,mang=+sm.value,playing=false;
-const TXT3=["Left: the view from above. Right: the same thing from the side, looking at Earth's orbit edge-on (the flat dashed line). The Moon's orbit is tilted (tilt exaggerated here), so at Full Moon it is usually above or below the shadow cone, even when from above it looks lined up. Full Moons happen every month at any time of year. Only when the tilt lines up with the Sun (twice a year, as Earth moves round) does the Full Moon go into the cone.","Same thing, but now the Moon's orbit level never changes (yellow, fixed). As Earth moves round the Sun, Earth's own orbit level (blue line) and its shadow cone appear to tilt up and down against it. Only when they line up, twice a year, does the Full Moon go into the cone."];
-const TXT={1:"Drag the slider, or press Play, to move Earth around the Sun. The Sun lights one half of Earth. The shadow cone is the dark space behind Earth, always pointing away from the Sun. (Sizes and distances are not to scale.)",
-3:"x",
+let spdI=0;const SPD=[['Normal',1],['Slow',.35],['Very slow',.12]];let level=1,ang=+se.value,mang=+sm.value,playing=false;
+const TXT={4:"Earth goes round the Sun once a year. Each dot is a Full Moon (about every 29.5 days). The Moon's tilted orbit always points the same way in space (blue dashed line). Only when that line points at the Sun, twice a year (red zones), can a Full Moon fall inside Earth's shadow. So eclipses come in 'seasons', not every month.",
+1:"Drag the slider, or press Play, to move Earth around the Sun. The Sun lights one half of Earth. The shadow cone is the dark space behind Earth, always pointing away from the Sun. (Sizes and distances are not to scale.)",
+3:"Left: the view from above. Right: the same thing from the side, looking at Earth's orbit edge-on (the flat dashed line). The Moon's orbit is tilted (tilt exaggerated here), so at Full Moon it is usually above or below the shadow cone, even when from above it looks lined up. Full Moons happen every month at any time of year. Only when the tilt lines up with the Sun (twice a year, as Earth moves round) does the Full Moon go into the cone.",
 2:"Now the Moon orbits Earth. Move the Moon with its slider (or press Play) and watch what happens when it goes into the shadow cone. The Moon does not make its own light, so with no sunlight reaching it, it goes dark."};
 function inCone(ex,ey,dx,dy,mx,my){
  const rx=mx-ex,ry=my-ey,along=rx*dx+ry*dy,perp=Math.abs(rx*(-dy)+ry*dx);
@@ -106,9 +105,10 @@ const MO3=100,L3=300,EX=235,EY=290;
 function moonIC(m){const along=-m.xs,perp=Math.hypot(m.h,m.zs);let ic=0;
  if(along>0&&along<ER+L3){const hw=ER*(1-along/(ER+L3));ic=perp<hw-MR?1:(perp<hw+MR?.5:0)}return ic}
 function draw(){
+ if(level==4){draw4();return}
  if(level!=3){drawTop();return}
  x.setTransform(1,0,0,1,0,0);drawTop();
- x.save();x.translate(640,0);x.beginPath();x.rect(0,0,640,560);x.clip();(side3?drawSideB:drawSide)();x.restore();
+ x.save();x.translate(640,0);drawSide();x.restore();
  x.strokeStyle='#555';x.lineWidth=2;x.beginPath();x.moveTo(640,0);x.lineTo(640,560);x.stroke();
  x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('TOP VIEW',12,24);x.fillText('SIDE VIEW',652,24);}
 function drawSide(){
@@ -144,48 +144,52 @@ function drawSide(){
  else if(dFull<8)st='Full Moon: from above it looks lined up, but from the side the Moon misses the cone. No eclipse!';
  document.getElementById('stat').textContent=st;}
 
-function drawSideB(){
- const I=TILT,b=ang*Math.PI/180,sd=Math.sin(b)*Math.sin(I),d=Math.asin(sd),cd=Math.cos(d),gam=Math.atan2(Math.sin(b)*Math.cos(I),Math.cos(b));
+function draw4(){
+ const C4X=320,C4Y=230,R4=165,a=ang*Math.PI/180;
  x.fillStyle='#000';x.fillRect(0,0,640,560);
- const SX=EX-185*cd,SY=EY-185*sd;
- const g=x.createRadialGradient(SX,SY,8,SX,SY,80);g.addColorStop(0,'#fff6a0');g.addColorStop(.5,'#ffc83a');g.addColorStop(1,'rgba(255,160,0,0)');
- x.fillStyle=g;x.beginPath();x.arc(SX,SY,80,0,7);x.fill();x.fillStyle='#ffd84a';x.beginPath();x.arc(SX,SY,38,0,7);x.fill();
- x.fillStyle='#fff';x.font='bold 16px Arial';x.textAlign='center';x.fillText('Sun',SX,SY+62);
- // Earth's orbit level (flat plane through Sun and Earth) - this is what tilts
- x.strokeStyle='#4a6a8a';x.lineWidth=1.5;x.setLineDash([8,6]);x.beginPath();x.moveTo(SX,SY);x.lineTo(EX+420*cd,EY+420*sd);x.stroke();x.setLineDash([]);
- x.save();x.translate(EX+250*cd,EY+250*sd+(sd>=0?20:-14));x.rotate(d);x.fillStyle='#7fa6cc';x.font='13px Arial';x.textAlign='center';x.fillText("Earth's orbit level (edge-on)",0,0);x.restore();
- // Moon's orbit level: fixed, never changes
- x.strokeStyle='#d0b050';x.lineWidth=1.4;x.setLineDash([3,4]);x.beginPath();x.ellipse(EX,EY,MO3,MO3*0.18,0,0,7);x.stroke();x.setLineDash([]);
- x.fillStyle='#d0b050';x.font='13px Arial';x.textAlign='center';x.fillText("Moon's orbit level (fixed)",EX,EY+MO3*0.18+50);
- // cone, tilted with Earth's orbit level
- if(cb.checked){const ux=cd,uy=sd,nx=-sd,ny=cd,tx=EX+(ER+L3)*ux,ty=EY+(ER+L3)*uy;
-  const gr=x.createLinearGradient(EX,EY,tx,ty);gr.addColorStop(0,'rgba(120,120,140,.75)');gr.addColorStop(1,'rgba(120,120,140,.15)');
-  x.fillStyle=gr;x.beginPath();x.moveTo(EX+nx*ER,EY+ny*ER);x.lineTo(tx,ty);x.lineTo(EX-nx*ER,EY-ny*ER);x.closePath();x.fill();
-  x.strokeStyle='#cfd2e6';x.lineWidth=1.5;x.setLineDash([5,4]);x.stroke();x.setLineDash([]);
-  x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Shadow cone (3D)',EX+(ER+L3*.72)*ux,EY+(ER+L3*.72)*uy-18);}
- // Earth, dark side faces away from Sun
- x.fillStyle='#2a6fd6';x.beginPath();x.arc(EX,EY,ER,0,7);x.fill();x.fillStyle='#4aa84a';x.beginPath();x.arc(EX-6,EY-5,10,0,7);x.fill();
- x.fillStyle='rgba(0,0,20,.65)';x.beginPath();x.arc(EX,EY,ER,d-Math.PI/2,d+Math.PI/2);x.fill();
- x.fillStyle='#fff';x.font='bold 15px Arial';x.textAlign='center';x.fillText('Earth',EX,EY+ER+18);
- // Moon on its fixed orbit
- const th=mang*Math.PI/180,tp=th+b-gam,mx=EX-MO3*Math.cos(tp),my=EY+MO3*0.18*Math.sin(tp);
- const ic=moonIC(moonSide(th,b));
- if(ic>=1){x.fillStyle='#5a1f12';x.beginPath();x.arc(mx,my,MR,0,7);x.fill()}
- else{x.fillStyle='#ddd';x.beginPath();x.arc(mx,my,MR,Math.PI/2+d,-Math.PI/2+d);x.fill();x.fillStyle=ic>0?'#5a1f12':'#333';x.beginPath();x.arc(mx,my,MR,-Math.PI/2+d,Math.PI/2+d);x.fill()}
- x.strokeStyle='#999';x.beginPath();x.arc(mx,my,MR,0,7);x.stroke();
- x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Moon',mx,my+MR+16);
- let st='';const dFull=Math.abs(((mang-180+540)%360)-180);
- if(ic>=1)st='Lunar eclipse! The Moon is inside the shadow cone.';
- else if(dFull<8)st='Full Moon, but the cone passes above or below the Moon. No eclipse!';
+ const g=x.createRadialGradient(C4X,C4Y,8,C4X,C4Y,64);g.addColorStop(0,'#fff6a0');g.addColorStop(.5,'#ffc83a');g.addColorStop(1,'rgba(255,160,0,0)');
+ x.fillStyle=g;x.beginPath();x.arc(C4X,C4Y,64,0,7);x.fill();x.fillStyle='#ffd84a';x.beginPath();x.arc(C4X,C4Y,30,0,7);x.fill();
+ x.fillStyle='#fff';x.font='bold 15px Arial';x.textAlign='center';x.fillText('Sun',C4X,C4Y+50);
+ // eclipse-season zones on the orbit
+ x.lineWidth=18;x.strokeStyle='rgba(255,70,50,.45)';
+ for(const c0 of [0,180]){x.beginPath();x.arc(C4X,C4Y,R4,-(c0+15)*Math.PI/180,-(c0-15)*Math.PI/180);x.stroke();}
+ x.fillStyle='#ff8a7a';x.font='bold 14px Arial';x.textAlign='left';x.fillText('Eclipse',C4X+R4+16,C4Y-4);x.fillText('season',C4X+R4+16,C4Y+12);
+ x.textAlign='right';x.fillText('Eclipse',C4X-R4-16,C4Y-4);x.fillText('season',C4X-R4-16,C4Y+12);
+ x.strokeStyle='#888';x.lineWidth=1.5;x.setLineDash([6,6]);x.beginPath();x.arc(C4X,C4Y,R4,0,7);x.stroke();x.setLineDash([]);
+ const inSeason=v=>{const m=((v%180)+180)%180;return Math.min(m,180-m)<=15};
+ // Full Moon dots (one every 29.1 degrees = 29.5 days)
+ const fm=[];for(let k=0;k<13;k++)fm.push((20+k*29.1)%360);
+ for(const f of fm){const r=f*Math.PI/180,px=C4X+R4*Math.cos(r),py=C4Y-R4*Math.sin(r);x.fillStyle=inSeason(f)?'#ff5a4a':'#bbb';x.beginPath();x.arc(px,py,6.5,0,7);x.fill();x.strokeStyle='#000';x.lineWidth=1;x.stroke();}
+ // Earth, Sun-Earth line and the Moon's fixed orbit line
+ const ex=C4X+R4*Math.cos(a),ey=C4Y-R4*Math.sin(a),ins=inSeason(ang);
+ x.strokeStyle=ins?'#ffd84a':'rgba(255,216,74,.55)';x.lineWidth=ins?2.5:1.5;x.beginPath();x.moveTo(C4X,C4Y);x.lineTo(ex,ey);x.stroke();
+ x.strokeStyle=ins?'#6fd0ff':'#4a90c0';x.lineWidth=ins?3:2;x.setLineDash([7,5]);x.beginPath();x.moveTo(ex-70,ey);x.lineTo(ex+70,ey);x.stroke();x.setLineDash([]);
+ x.fillStyle='#4aa8e0';for(const s of [-1,1]){x.beginPath();x.moveTo(ex+s*70,ey);x.lineTo(ex+s*58,ey-5);x.lineTo(ex+s*58,ey+5);x.fill();}
+ x.fillStyle='#2a6fd6';x.beginPath();x.arc(ex,ey,12,0,7);x.fill();x.fillStyle='#4aa84a';x.beginPath();x.arc(ex-3,ey-2,5,0,7);x.fill();
+ x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Earth',ex,ey+(ey<C4Y?-20:30));
+ // legend
+ x.textAlign='left';x.font='13px Arial';x.fillStyle='#bbb';x.beginPath();x.arc(30,438,6,0,7);x.fill();x.fillStyle='#fff';x.fillText('Full Moon (no eclipse)',42,443);
+ x.fillStyle='#ff5a4a';x.beginPath();x.arc(210,438,6,0,7);x.fill();x.fillStyle='#fff';x.fillText('Full Moon in eclipse season',222,443);
+ x.strokeStyle='#4a90c0';x.lineWidth=2;x.setLineDash([6,4]);x.beginPath();x.moveTo(24,459);x.lineTo(59,459);x.stroke();x.setLineDash([]);x.fillStyle='#fff';x.fillText("Where the Moon's orbit crosses Earth's level (always points the same way)",66,464);
+ // timeline strip for the year
+ const X0=30,X1=610,Y0=478,Y1=516,px=v=>X0+(X1-X0)*v/360;
+ x.fillStyle='#1a1a1a';x.fillRect(X0,Y0,X1-X0,Y1-Y0);
+ x.fillStyle='rgba(255,70,50,.45)';for(const [s,e] of [[0,15],[165,195],[345,360]])x.fillRect(px(s),Y0,px(e)-px(s),Y1-Y0);
+ for(const f of fm){x.fillStyle=inSeason(f)?'#ff5a4a':'#bbb';x.beginPath();x.arc(px(f),(Y0+Y1)/2,5,0,7);x.fill();}
+ x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.moveTo(px(ang),Y0-6);x.lineTo(px(ang),Y1+6);x.stroke();
+ x.fillStyle='#bbb';x.font='12px Arial';x.textAlign='left';x.fillText('Start of year',X0,Y1+20);x.textAlign='center';x.fillText('Half a year',(X0+X1)/2,Y1+20);x.textAlign='right';x.fillText('Back to the start',X1,Y1+20);
+ // status
+ let near=null;for(let k=0;k<fm.length;k++){const dd=Math.abs(((ang-fm[k]+540)%360)-180+0);}
+ let best=1e9;for(const f of fm){const dd=Math.abs(((ang-f+540)%360)-180)-0;const diff=Math.abs(((ang-f)+540)%360-180);const q=Math.min(Math.abs(ang-f),360-Math.abs(ang-f));if(q<best)best=q}
+ let st=ins?'Eclipse season: a Full Moon now can have a lunar eclipse':'Not eclipse season: a Full Moon now misses Earth\'s shadow';
+ if(best<3)st=ins?'Full Moon in eclipse season: lunar eclipse!':'Full Moon, but no eclipse this month.';
  document.getElementById('stat').textContent=st;}
-function setLevel(l){level=l;c.width=l==3?1280:640;c.style.width=l==3?'min(96vw,1280px)':'';document.querySelectorAll('.lv[data-l]').forEach(b=>b.classList.toggle('on',+b.dataset.l==l));
- document.getElementById('mrow').style.display=l>=2?'flex':'none';document.getElementById('mode3').style.display=l==3?'flex':'none';document.getElementById('elab').textContent=l==3?"Time of year (Earth's place in its orbit)":"Earth's orbit";document.getElementById('msg').textContent=l==3?TXT3[side3]:TXT[l];location.hash=l;draw()}
-document.querySelectorAll('.lv[data-l]').forEach(b=>b.onclick=()=>setLevel(+b.dataset.l));
-function setMode(m){side3=m;document.querySelectorAll('#mode3 .lv').forEach(b=>b.classList.toggle('on',+b.dataset.m==m));if(level==3)document.getElementById('msg').textContent=TXT3[m];draw()}
-document.querySelectorAll('#mode3 .lv').forEach(b=>b.onclick=()=>setMode(+b.dataset.m));
+function setLevel(l){level=l;c.width=l==3?1280:640;c.style.width=l==3?'min(96vw,1280px)':'';document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',+b.dataset.l==l));
+ document.getElementById('mrow').style.display=(l==2||l==3)?'flex':'none';document.getElementById('crow').style.display=l==4?'none':'flex';document.getElementById('elab').textContent=l>=3?"Time of year (Earth's place in its orbit)":"Earth's orbit";document.getElementById('msg').textContent=TXT[l];location.hash=l;draw()}
+document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>setLevel(+b.dataset.l));
 se.oninput=()=>{ang=+se.value;draw()};sm.oninput=()=>{mang=+sm.value;draw()};cb.onchange=draw;const sb=document.getElementById('spd');sb.onclick=()=>{spdI=(spdI+1)%3;sb.textContent='Speed: '+SPD[spdI][0]};
 pb.onclick=()=>{playing=!playing;pb.textContent=playing?'Pause':'Play'};
-let last=0;function tick(t){if(playing){const d=(t-last)*SPD[spdI][1];ang=(ang+d*(level>=2?0.006:0.02))%360;se.value=ang;
- if(level>=2){mang=(mang+d*0.08)%360;sm.value=mang}draw()}last=t;requestAnimationFrame(tick)}
-setMode(0);setLevel(['#2','#3'].includes(location.hash)?+location.hash[1]:1);requestAnimationFrame(tick);
+let last=0;function tick(t){if(playing){const d=(t-last)*SPD[spdI][1];ang=(ang+d*(level==4?0.025:(level>=2?0.006:0.02)))%360;se.value=ang;
+ if(level==2||level==3){mang=(mang+d*0.08)%360;sm.value=mang}draw()}last=t;requestAnimationFrame(tick)}
+setLevel(['#2','#3','#4'].includes(location.hash)?+location.hash[1]:1);requestAnimationFrame(tick);
 </script></body></html>
