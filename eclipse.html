@@ -144,6 +144,28 @@ function drawSide(){
  else if(dFull<8)st='Full Moon: from above it looks lined up, but from the side the Moon misses the cone. No eclipse!';
  document.getElementById('stat').textContent=st;}
 
+
+function inset4(){
+ const ox=468,oy=8,w=164,h=134,s=0.33,exi=ox+44,eyi=oy+h/2+6,b=ang*Math.PI/180;
+ const th=(180+((ang<15?ang+360:ang)-15)/29.1*360)*Math.PI/180;
+ x.fillStyle='#050505';x.fillRect(ox,oy,w,h);x.strokeStyle='#666';x.lineWidth=1.5;x.strokeRect(ox,oy,w,h);
+ x.save();x.beginPath();x.rect(ox,oy,w,h);x.clip();
+ x.fillStyle='#ffd84a';x.font='bold 11px Arial';x.textAlign='left';x.fillText('SIDE VIEW',ox+6,oy+14);
+ const g=x.createRadialGradient(ox,eyi,2,ox,eyi,26);g.addColorStop(0,'#fff6a0');g.addColorStop(1,'rgba(255,160,0,0)');x.fillStyle=g;x.beginPath();x.arc(ox,eyi,26,0,7);x.fill();
+ x.strokeStyle='#4a6a8a';x.lineWidth=1;x.setLineDash([5,4]);x.beginPath();x.moveTo(ox+14,eyi);x.lineTo(ox+w,eyi);x.stroke();x.setLineDash([]);
+ const tx=exi+(ER+L3)*s;const gr=x.createLinearGradient(exi,0,tx,0);gr.addColorStop(0,'rgba(120,120,140,.8)');gr.addColorStop(1,'rgba(120,120,140,.15)');
+ x.fillStyle=gr;x.beginPath();x.moveTo(exi,eyi-ER*s);x.lineTo(tx,eyi);x.lineTo(exi,eyi+ER*s);x.closePath();x.fill();
+ x.strokeStyle='#cfd2e6';x.lineWidth=1;x.setLineDash([3,3]);x.stroke();x.setLineDash([]);
+ x.strokeStyle='#888';x.lineWidth=1;x.setLineDash([2,3]);x.beginPath();
+ for(let k=0;k<=72;k++){const m=moonSide(k*Math.PI/36,b);const sx=exi-m.xs*s,sy=eyi-m.h*s;k?x.lineTo(sx,sy):x.moveTo(sx,sy)}x.stroke();x.setLineDash([]);
+ x.fillStyle='#2a6fd6';x.beginPath();x.arc(exi,eyi,ER*s,0,7);x.fill();x.fillStyle='rgba(0,0,20,.65)';x.beginPath();x.arc(exi,eyi,ER*s,-Math.PI/2,Math.PI/2);x.fill();
+ const m=moonSide(th,b),mx=exi-m.xs*s,my=eyi-m.h*s,ic=moonIC(m);
+ x.fillStyle=ic>=1?'#5a1f12':'#ddd';x.beginPath();x.arc(mx,my,3.8,0,7);x.fill();x.strokeStyle='#999';x.lineWidth=1;x.stroke();
+ x.fillStyle='#fff';x.font='10px Arial';x.textAlign='center';x.fillText('Earth',exi,oy+h-6);x.textAlign='left';x.fillStyle='#ffd84a';x.fillText('Sun',ox+4,eyi+34);x.fillStyle='#fff';
+ x.textAlign='left';x.fillText('Moon',Math.min(mx+7,ox+w-30),my+(my<eyi?-5:12));
+ x.fillText('Shadow cone',exi+10,eyi+ER*s+30);
+ if(ic>=1){x.fillStyle='#ff8a7a';x.font='bold 11px Arial';x.textAlign='right';x.fillText('Moon in the cone!',ox+w-6,oy+h-6)}
+ x.restore();}
 function draw4(){
  const C4X=320,C4Y=230,R4=165,a=ang*Math.PI/180;
  x.fillStyle='#000';x.fillRect(0,0,640,560);
@@ -152,13 +174,13 @@ function draw4(){
  x.fillStyle='#fff';x.font='bold 15px Arial';x.textAlign='center';x.fillText('Sun',C4X,C4Y+50);
  // eclipse-season zones on the orbit
  x.lineWidth=18;x.strokeStyle='rgba(255,70,50,.45)';
- for(const c0 of [0,180]){x.beginPath();x.arc(C4X,C4Y,R4,-(c0+15)*Math.PI/180,-(c0-15)*Math.PI/180);x.stroke();}
+ for(const c0 of [0,180]){x.beginPath();x.arc(C4X,C4Y,R4,-(c0+12)*Math.PI/180,-(c0-12)*Math.PI/180);x.stroke();}
  x.fillStyle='#ff8a7a';x.font='bold 14px Arial';x.textAlign='left';x.fillText('Eclipse',C4X+R4+16,C4Y-4);x.fillText('season',C4X+R4+16,C4Y+12);
  x.textAlign='right';x.fillText('Eclipse',C4X-R4-16,C4Y-4);x.fillText('season',C4X-R4-16,C4Y+12);
  x.strokeStyle='#888';x.lineWidth=1.5;x.setLineDash([6,6]);x.beginPath();x.arc(C4X,C4Y,R4,0,7);x.stroke();x.setLineDash([]);
- const inSeason=v=>{const m=((v%180)+180)%180;return Math.min(m,180-m)<=15};
+ const inSeason=v=>{const m=((v%180)+180)%180;return Math.min(m,180-m)<=12};
  // Full Moon dots (one every 29.1 degrees = 29.5 days)
- const fm=[];for(let k=0;k<13;k++)fm.push((20+k*29.1)%360);
+ const fm=[];for(let k=0;k<13;k++)fm.push((15+k*29.1)%360);
  for(const f of fm){const r=f*Math.PI/180,px=C4X+R4*Math.cos(r),py=C4Y-R4*Math.sin(r);x.fillStyle=inSeason(f)?'#ff5a4a':'#bbb';x.beginPath();x.arc(px,py,6.5,0,7);x.fill();x.strokeStyle='#000';x.lineWidth=1;x.stroke();}
  // Earth, Sun-Earth line and the Moon's fixed orbit line
  const ex=C4X+R4*Math.cos(a),ey=C4Y-R4*Math.sin(a),ins=inSeason(ang);
@@ -174,10 +196,11 @@ function draw4(){
  // timeline strip for the year
  const X0=30,X1=610,Y0=478,Y1=516,px=v=>X0+(X1-X0)*v/360;
  x.fillStyle='#1a1a1a';x.fillRect(X0,Y0,X1-X0,Y1-Y0);
- x.fillStyle='rgba(255,70,50,.45)';for(const [s,e] of [[0,15],[165,195],[345,360]])x.fillRect(px(s),Y0,px(e)-px(s),Y1-Y0);
+ x.fillStyle='rgba(255,70,50,.45)';for(const [s,e] of [[0,12],[168,192],[348,360]])x.fillRect(px(s),Y0,px(e)-px(s),Y1-Y0);
  for(const f of fm){x.fillStyle=inSeason(f)?'#ff5a4a':'#bbb';x.beginPath();x.arc(px(f),(Y0+Y1)/2,5,0,7);x.fill();}
  x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.moveTo(px(ang),Y0-6);x.lineTo(px(ang),Y1+6);x.stroke();
  x.fillStyle='#bbb';x.font='12px Arial';x.textAlign='left';x.fillText('Start of year',X0,Y1+20);x.textAlign='center';x.fillText('Half a year',(X0+X1)/2,Y1+20);x.textAlign='right';x.fillText('Back to the start',X1,Y1+20);
+ inset4();
  // status
  let near=null;for(let k=0;k<fm.length;k++){const dd=Math.abs(((ang-fm[k]+540)%360)-180+0);}
  let best=1e9;for(const f of fm){const dd=Math.abs(((ang-f+540)%360)-180)-0;const diff=Math.abs(((ang-f)+540)%360-180);const q=Math.min(Math.abs(ang-f),360-Math.abs(ang-f));if(q<best)best=q}
