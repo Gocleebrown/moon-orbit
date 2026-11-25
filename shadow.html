@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shadows: light, object and wall</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center}
+h1{font-size:20px;margin:10px 0 4px}
+canvas{background:#000;border-radius:8px;max-width:96vw;height:auto}
+.ctl{width:min(94vw,940px);display:flex;align-items:center;gap:12px;margin:5px 0;flex-wrap:wrap}
+.ctl span{font-size:15px;min-width:210px}
+input[type=range]{flex:1;min-width:200px;height:26px}
+label{font-size:15px}
+#stat{width:min(94vw,940px);font-size:16px;color:#ffd84a;font-weight:bold;min-height:44px;margin:6px 0}
+</style></head><body>
+<h1>Light, object and wall: shadows</h1>
+<canvas id="c" width="940" height="520"></canvas>
+<div id="stat"></div>
+<div class="ctl"><span>Size of the light source</span><input id="rl" type="range" min="4" max="80" step="1" value="30"></div>
+<div class="ctl"><span>Size of the object</span><input id="ro" type="range" min="6" max="80" step="1" value="40"></div>
+<div class="ctl"><span>Position of the object</span><input id="xo" type="range" min="140" max="520" step="1" value="300"></div>
+<div class="ctl"><label><input type="checkbox" id="rays" checked> Show light rays</label><label><input type="checkbox" id="fill" checked> Show shadow regions</label></div>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const $=id=>document.getElementById(id);
+const XL=70,XW=600,CY=260,WALLH=240;
+function draw(){
+ const Rl=+$('rl').value,Ro=+$('ro').value,XO=+$('xo').value,d1=XO-XL,d2=XW-XO;
+ const Rp=Ro+(Ro+Rl)*d2/d1;          // penumbra radius on wall
+ const Ru=Ro-(Rl-Ro)*d2/d1;          // umbra radius on wall (negative = umbra ends before wall)
+ const Y=v=>CY-v;
+ x.fillStyle='#000';x.fillRect(0,0,940,520);
+ // ---- side view panel ----
+ x.save();x.beginPath();x.rect(0,0,660,520);x.clip();
+ // shadow regions
+ if($('fill').checked){
+  x.fillStyle='rgba(150,150,170,.35)';x.beginPath();x.moveTo(XO,Y(Ro));x.lineTo(XW,Y(Rp));x.lineTo(XW,Y(-Rp));x.lineTo(XO,Y(-Ro));x.closePath();x.fill();
+  if(Ru>=0){x.fillStyle='rgba(20,20,30,.95)';x.strokeStyle='#555';x.beginPath();x.moveTo(XO,Y(Ro));x.lineTo(XW,Y(Ru));x.lineTo(XW,Y(-Ru));x.lineTo(XO,Y(-Ro));x.closePath();x.fill();}
+  else{const dt=Ro*d1/(Rl-Ro);x.fillStyle='rgba(20,20,30,.95)';x.beginPath();x.moveTo(XO,Y(Ro));x.lineTo(XO+dt,Y(0));x.lineTo(XO,Y(-Ro));x.closePath();x.fill();
+   x.fillStyle='rgba(110,110,130,.45)';x.beginPath();x.moveTo(XO+dt,Y(0));x.lineTo(XW,Y(-Ru));x.lineTo(XW,Y(Ru));x.closePath();x.fill();}
+ }
+ // rays (outer tangents = penumbra edges, inner tangents = umbra edges)
+ if($('rays').checked){
+  const line=(x0,y0,x1,y1,col,dash)=>{x.strokeStyle=col;x.lineWidth=1.5;x.setLineDash(dash||[]);x.beginPath();x.moveTo(x0,Y(y0));x.lineTo(x1,Y(y1));x.stroke();x.setLineDash([])};
+  const ext=(sy,ty)=>{ // from (XL,sy) through (XO,ty) to wall
+   return ty+(ty-sy)*d2/d1};
+  line(XL,-Rl,XW,ext(-Rl,Ro),'#ffd84a',[6,4]);line(XL,Rl,XW,ext(Rl,-Ro),'#ffd84a',[6,4]);
+  line(XL,Rl,XW,ext(Rl,Ro),'#ff6a5a');line(XL,-Rl,XW,ext(-Rl,-Ro),'#ff6a5a');
+ }
+ // axis
+ x.strokeStyle='#333';x.lineWidth=1;x.setLineDash([4,6]);x.beginPath();x.moveTo(0,CY);x.lineTo(XW,CY);x.stroke();x.setLineDash([]);
+ // light
+ const g=x.createRadialGradient(XL,CY,Rl*.2,XL,CY,Rl*2.2);g.addColorStop(0,'rgba(255,240,150,.9)');g.addColorStop(1,'rgba(255,170,0,0)');
+ x.fillStyle=g;x.beginPath();x.arc(XL,CY,Rl*2.2,0,7);x.fill();x.fillStyle='#ffe066';x.beginPath();x.arc(XL,CY,Rl,0,7);x.fill();
+ x.fillStyle='#fff';x.font='bold 14px Arial';x.textAlign='center';x.fillText('Light source',XL,CY+Math.max(Rl*2.2,60)+12);
+ // object
+ x.fillStyle='#4a6fa8';x.beginPath();x.arc(XO,CY,Ro,0,7);x.fill();x.strokeStyle='#9bd';x.lineWidth=1.5;x.stroke();
+ x.fillStyle='#fff';x.fillText('Object',XO,CY+Ro+20);
+ // wall
+ x.fillStyle='#d9d4c8';x.fillRect(XW,CY-WALLH,16,2*WALLH);
+ const seg=(r,col)=>{const h=Math.min(Math.abs(r),WALLH);x.fillStyle=col;x.fillRect(XW-1,CY-h,18,2*h)};
+ seg(Rp,'#8a8a96');
+ if(Ru>=0)seg(Ru,'#15151c');else seg(Ru,'#b0b0bc');
+ x.fillStyle='#fff';x.font='bold 14px Arial';x.fillText('Wall',XW+8,CY-WALLH-6);
+ x.restore();
+ // ---- front view of the wall ----
+ const WX=790,WY=CY,S=0.5,PR=Rp*S,UR=Math.abs(Ru)*S;
+ x.fillStyle='#d9d4c8';x.fillRect(670,CY-240,260,480);
+ x.save();x.beginPath();x.rect(670,CY-240,260,480);x.clip();
+ const rg=x.createRadialGradient(WX,WY,Math.max(0,Ru>=0?UR:UR),WX,WY,PR);
+ if(PR>0){const inner=Math.min(UR/PR,.999);const gg=x.createRadialGradient(WX,WY,0,WX,WY,PR);
+  if(Ru>=0){gg.addColorStop(0,'rgba(10,10,16,1)');gg.addColorStop(inner,'rgba(10,10,16,1)');gg.addColorStop(1,'rgba(10,10,16,0)');}
+  else{gg.addColorStop(0,'rgba(10,10,16,.62)');gg.addColorStop(inner,'rgba(10,10,16,.62)');gg.addColorStop(Math.min(inner+0.001,1),'rgba(10,10,16,.62)');gg.addColorStop(1,'rgba(10,10,16,0)');}
+  x.fillStyle=gg;x.beginPath();x.arc(WX,WY,PR,0,7);x.fill();}
+ x.restore();
+ x.fillStyle='#fff';x.font='bold 14px Arial';x.textAlign='center';x.fillText('The wall, seen from the front',WX,CY-WALLH-6+0);
+ x.fillText('(half size)',WX,CY+WALLH+16);
+ x.strokeStyle='#444';x.lineWidth=1;x.strokeRect(670,CY-240,260,480);
+ // text
+ let s;
+ if(Ru>=0)s='Umbra (full shadow) and penumbra (partial shadow) both reach the wall.';
+ else s='The umbra stops before the wall, so the middle is only partly dark (antumbra). That is what an annular eclipse looks like.';
+ $('stat').textContent=s;
+}
+['rl','ro','xo','rays','fill'].forEach(id=>$(id).oninput=draw);draw();
+</script></body></html>
