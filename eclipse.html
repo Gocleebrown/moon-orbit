@@ -41,7 +41,7 @@ const se=document.getElementById('se'),sm=document.getElementById('sm'),pb=docum
 const CX=320,CY=280,R=135,ER=24,L=105,MR=7,MO=64;
 let spdI=0;const SPD=[['Normal',1],['Slow',.35],['Very slow',.12]];let level=1,ang=+se.value,mang=+sm.value,playing=false;
 const TXT={1:"Drag the slider, or press Play, to move Earth around the Sun. The Sun lights one half of Earth. The shadow cone is the dark space behind Earth, always pointing away from the Sun. (Sizes and distances are not to scale.)",
-3:"Side view: we are looking at Earth's orbit edge-on (the flat horizontal line), with the Sun on the left. The Moon's orbit is tilted compared with it (tilt exaggerated here). Drag the sliders: the Moon only goes into the shadow cone at Full Moon AND when its tilted path crosses the line through the cone. Most months it passes above or below, so there is no eclipse every month.",
+3:"Left: the view from above. Right: the same thing from the side, looking at Earth's orbit edge-on (the flat dashed line). The Moon's orbit is tilted (tilt exaggerated here), so at Full Moon it is usually above or below the shadow cone, even when from above it looks lined up. Full Moons happen every month at any time of year. Only when the tilt lines up with the Sun (twice a year, as Earth moves round) does the Full Moon go into the cone.",
 2:"Now the Moon orbits Earth. Move the Moon with its slider (or press Play) and watch what happens when it goes into the shadow cone. The Moon does not make its own light, so with no sunlight reaching it, it goes dark."};
 function inCone(ex,ey,dx,dy,mx,my){
  const rx=mx-ex,ry=my-ey,along=rx*dx+ry*dy,perp=Math.abs(rx*(-dy)+ry*dx);
@@ -49,8 +49,7 @@ function inCone(ex,ey,dx,dy,mx,my){
  const hw=ER*(1-along/(ER+L));
  return perp+MR*0.0<hw-MR?1:(perp<hw+MR?0.5:0);   // 1 = fully inside, .5 = partly
 }
-function draw(){
- if(level==3)return drawSide();
+function drawTop(){
  x.fillStyle='#000';x.fillRect(0,0,640,560);
  const g=x.createRadialGradient(CX,CY,10,CX,CY,70);g.addColorStop(0,'#fff6a0');g.addColorStop(.5,'#ffc83a');g.addColorStop(1,'rgba(255,160,0,0)');
  x.fillStyle=g;x.beginPath();x.arc(CX,CY,70,0,7);x.fill();
@@ -79,8 +78,9 @@ function draw(){
   // Moon angle 0 = on the Sun side of Earth; increases counter-clockwise like Earth
   const sunA=Math.atan2(-(CY-ey),CX-ex); // direction Earth->Sun in canvas coords
   const m=mang*Math.PI/180,sa=Math.atan2(CY-ey,CX-ex);
-  const mx=ex+MO*Math.cos(sa-m),my=ey+MO*Math.sin(sa-m);
-  const ic=inCone(ex,ey,dx,dy,mx,my);
+  let mx=ex+MO*Math.cos(sa-m),my=ey+MO*Math.sin(sa-m),ic;
+  if(level==3){const q=moonSide(m,a),k=MO/MO3;mx=ex+k*(q.xs*Math.cos(sa)+q.zs*Math.sin(sa));my=ey+k*(q.xs*Math.sin(sa)-q.zs*Math.cos(sa));ic=moonIC(q);}
+  else ic=inCone(ex,ey,dx,dy,mx,my);
   // sun-facing half lit
   const toSun=Math.atan2(CY-my,CX-mx);
   if(ic>=1){x.fillStyle='#5a1f12';x.beginPath();x.arc(mx,my,MR,0,7);x.fill();}
@@ -92,7 +92,7 @@ function draw(){
   st=ic>=1?'The Moon is in the shadow cone: no sunlight reaches it!':(ic>0?'The Moon is entering the shadow cone…':'');
  }
  x.fillStyle='#fff';x.font='bold 15px Arial';x.textAlign='center';x.fillText('Earth',ex,ey+(dy<0?ER+(level>1?MO-ER:0)+18:-ER-(level>1?MO-ER:0)-10));
- document.getElementById('stat').textContent=st;
+ if(level!=3)document.getElementById('stat').textContent=st;
 }
 
 const TILT=25*Math.PI/180;
@@ -100,6 +100,14 @@ function moonSide(th,b){ // th = Moon angle from Sun direction, b = angle betwee
  const psi=th+b,u=MO3*Math.cos(psi),w=MO3*Math.sin(psi)*Math.cos(TILT),h=MO3*Math.sin(psi)*Math.sin(TILT);
  return {xs:u*Math.cos(b)+w*Math.sin(b),zs:-u*Math.sin(b)+w*Math.cos(b),h:h};}
 const MO3=100,L3=300,EX=235,EY=290;
+function moonIC(m){const along=-m.xs,perp=Math.hypot(m.h,m.zs);let ic=0;
+ if(along>0&&along<ER+L3){const hw=ER*(1-along/(ER+L3));ic=perp<hw-MR?1:(perp<hw+MR?.5:0)}return ic}
+function draw(){
+ if(level!=3){drawTop();return}
+ x.setTransform(1,0,0,1,0,0);drawTop();
+ x.save();x.translate(640,0);drawSide();x.restore();
+ x.strokeStyle='#555';x.lineWidth=2;x.beginPath();x.moveTo(640,0);x.lineTo(640,560);x.stroke();
+ x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('TOP VIEW',12,24);x.fillText('SIDE VIEW',652,24);}
 function drawSide(){
  x.fillStyle='#000';x.fillRect(0,0,640,560);
  const g=x.createRadialGradient(50,EY,8,50,EY,80);g.addColorStop(0,'#fff6a0');g.addColorStop(.5,'#ffc83a');g.addColorStop(1,'rgba(255,160,0,0)');
@@ -123,18 +131,17 @@ function drawSide(){
  x.strokeStyle='#888';x.lineWidth=1.2;x.setLineDash([3,4]);x.beginPath();
  for(let k=0;k<=72;k++){const m=moonSide(k*Math.PI/36,b);const sx=EX-m.xs,sy=EY-m.h;k?x.lineTo(sx,sy):x.moveTo(sx,sy)}x.stroke();x.setLineDash([]);
  const th=mang*Math.PI/180,m=moonSide(th,b),mx=EX-m.xs,my=EY-m.h;
- const along=-m.xs,perp=Math.hypot(m.h,m.zs);let ic=0;
- if(along>0&&along<ER+L3){const hw=ER*(1-along/(ER+L3));ic=perp<hw-MR?1:(perp<hw+MR?.5:0)}
+ const ic=moonIC(m);
  if(ic>=1){x.fillStyle='#5a1f12';x.beginPath();x.arc(mx,my,MR,0,7);x.fill()}
  else{x.fillStyle='#ddd';x.beginPath();x.arc(mx,my,MR,Math.PI/2,-Math.PI/2);x.fill();x.fillStyle=ic>0?'#5a1f12':'#333';x.beginPath();x.arc(mx,my,MR,-Math.PI/2,Math.PI/2);x.fill()}
  x.strokeStyle='#999';x.beginPath();x.arc(mx,my,MR,0,7);x.stroke();
  x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Moon',mx,my+MR+16);
  let st='';const dFull=Math.abs(((mang-180+540)%360)-180);
  if(ic>=1)st='Lunar eclipse! The Moon is inside the shadow cone.';
- else if(dFull<8)st='Full Moon, but it misses the cone: no eclipse this month.';
+ else if(dFull<8)st='Full Moon: from above it looks lined up, but from the side the Moon misses the cone. No eclipse!';
  document.getElementById('stat').textContent=st;}
-function setLevel(l){level=l;document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',+b.dataset.l==l));
- document.getElementById('mrow').style.display=l>=2?'flex':'none';document.getElementById('elab').textContent=l==3?"Time of year":"Earth's orbit";document.getElementById('msg').textContent=TXT[l];location.hash=l;draw()}
+function setLevel(l){level=l;c.width=l==3?1280:640;c.style.width=l==3?'min(96vw,1280px)':'';document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',+b.dataset.l==l));
+ document.getElementById('mrow').style.display=l>=2?'flex':'none';document.getElementById('elab').textContent=l==3?"Time of year (Earth's place in its orbit)":"Earth's orbit";document.getElementById('msg').textContent=TXT[l];location.hash=l;draw()}
 document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>setLevel(+b.dataset.l));
 se.oninput=()=>{ang=+se.value;draw()};sm.oninput=()=>{mang=+sm.value;draw()};cb.onchange=draw;const sb=document.getElementById('spd');sb.onclick=()=>{spdI=(spdI+1)%3;sb.textContent='Speed: '+SPD[spdI][0]};
 pb.onclick=()=>{playing=!playing;pb.textContent=playing?'Pause':'Play'};
