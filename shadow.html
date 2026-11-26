@@ -1,60 +1,89 @@
-<!-- v2: click dots on the light source to send beams -->
+<!-- v3: Level 1 umbra/penumbra labels + Level 2 Sun, Earth and Moon -->
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shadows: light, object and wall</title>
+<title>Shadows: umbra and penumbra</title>
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff;display:flex;flex-direction:column;align-items:center}
-h1{font-size:20px;margin:10px 0 4px}
-canvas{background:#000;border-radius:8px;max-width:96vw;height:auto;cursor:pointer}
-.ctl{width:min(94vw,940px);display:flex;align-items:center;gap:12px;margin:5px 0;flex-wrap:wrap}
+body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff}
+#app{display:flex;flex-wrap:nowrap;gap:16px;align-items:flex-start;padding:12px}
+#side{width:210px;flex:none;display:flex;flex-direction:column;gap:8px}
+#side h2{font-size:16px;margin:0 0 4px;color:#ffd84a}
+.lv{background:#2b2b2b;color:#fff;border:2px solid #444;border-radius:8px;padding:10px 12px;text-align:left;font-weight:bold;font-size:15px;cursor:pointer}
+.lv small{display:block;font-weight:normal;color:#bbb;font-size:12px;margin-top:2px}
+.lv.on{background:#f28c1a;border-color:#ffd84a}.lv.on small{color:#fff}
+@media(max-width:760px){#app{flex-wrap:wrap}#side{width:100%}}
+#main{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+canvas{background:#000;border-radius:8px;width:100%;height:auto}
+.ctl{width:100%;display:flex;align-items:center;gap:12px;margin:5px 0;flex-wrap:wrap}
 .ctl span{font-size:15px;min-width:210px}
 input[type=range]{flex:1;min-width:200px;height:26px}
 label{font-size:15px}
-button{font-size:15px;padding:6px 14px;border-radius:6px;border:0;background:#ffd84a;font-weight:bold;cursor:pointer}
-#stat{width:min(94vw,940px);font-size:16px;color:#ffd84a;font-weight:bold;min-height:44px;margin:6px 0}
+button.b{font-size:15px;padding:8px 14px;border-radius:8px;border:0;background:#ffd84a;font-weight:bold;cursor:pointer}
+button.p{background:#f28c1a;color:#fff}button.s{background:#3a7bd5;color:#fff}
+#stat{width:100%;font-size:18px;color:#ffd84a;font-weight:bold;min-height:44px;margin:6px 0}
+#msg{width:100%;font-size:15px;color:#ddd;margin:4px 0}
 </style></head><body>
-<h1>Light, object and wall: shadows</h1>
+<div id="app">
+<div id="side"><h2>Shadows</h2>
+<button class="lv" data-l="1">Level 1<small>Light, object and wall</small></button>
+<button class="lv" data-l="2">Level 2<small>Sun, Earth and Moon</small></button>
+</div>
+<div id="main" style="max-width:940px">
 <canvas id="c" width="940" height="520"></canvas>
 <div id="stat"></div>
-<div class="ctl"><button id="clr">Clear beams</button><button id="all">All dots</button><label><input type="checkbox" id="fill"> Show shadow regions</label></div>
-<div class="ctl"><span>Size of the light source</span><input id="rl" type="range" min="4" max="80" step="1" value="30"></div>
-<div class="ctl"><span>Size of the object</span><input id="ro" type="range" min="6" max="80" step="1" value="40"></div>
-<div class="ctl"><span>Position of the object</span><input id="xo" type="range" min="140" max="520" step="1" value="300"></div>
+<div class="ctl l1"><button class="b" id="clr">Clear beams</button><button class="b" id="all">All dots</button><label><input type="checkbox" id="fill"> Show shadow regions</label></div>
+<div class="ctl l1"><span>Size of the light source</span><input id="rl" type="range" min="4" max="80" step="1" value="30"></div>
+<div class="ctl l1"><span>Size of the object</span><input id="ro" type="range" min="6" max="80" step="1" value="40"></div>
+<div class="ctl l1"><span>Position of the object</span><input id="xo" type="range" min="140" max="520" step="1" value="300"></div>
+<div class="ctl l2"><button class="b p" id="play">Play</button><button class="b s" id="spd">Speed: Normal</button><span style="min-width:0">Time of year (Earth's place in its orbit)</span><input id="se" type="range" min="0" max="360" step="0.5" value="40"></div>
+<div id="msg"></div>
+</div></div>
 <script>
 const c=document.getElementById('c'),x=c.getContext('2d');
 const $=id=>document.getElementById(id);
+let level=1;
+const TXT={1:"Click the coloured dots on the light source to send beams from that point. Tick 'Show shadow regions' to see the names: the umbra is where the light is completely blocked, and the penumbra is where only some of the light is blocked.",
+2:"Left: the view from above. Earth blocks sunlight and makes a shadow behind it. The dark inner part is the umbra and the grey outer part is the penumbra. Right: the same thing seen from the Sun, where Earth's penumbra is the grey disc and the umbra hides directly behind Earth. The Moon only gets an umbra or penumbra shadow when it passes through them, which is not every month because its orbit is tilted."};
+/* ================= LEVEL 1 ================= */
 const XL=70,XW=600,CY=260,WALLH=240;
 const K=[-1,-2/3,-1/3,0,1/3,2/3,1];
 const COL=['#ff5a5a','#ff9a3c','#ffe14a','#6be26b','#4ad8e8','#6a8cff','#c46bff'];
 let sel=new Set([0]);
 function pts(Rl){return K.map(k=>({x:XL,y:CY-k*Rl*0.92}))}
-// does ray from (px,py) towards wall height ty hit the circle? returns hit point or null
 function hit(px,py,ty,XO,Ro){
  const dx=XW-px,dy=ty-py,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
  const fx=px-XO,fy=py-CY,b=fx*ux+fy*uy,cc=fx*fx+fy*fy-Ro*Ro,disc=b*b-cc;
  if(disc<0)return null;const t=-b-Math.sqrt(disc);if(t<0)return null;
  return{x:px+ux*t,y:py+uy*t};
 }
-function draw(){
+function draw1(){
  const Rl=+$('rl').value,Ro=+$('ro').value,XO=+$('xo').value,d1=XO-XL,d2=XW-XO;
  const Rp=Ro+(Ro+Rl)*d2/d1, Ru=Ro-(Rl-Ro)*d2/d1;
  const Y=v=>CY-v;
  x.fillStyle='#000';x.fillRect(0,0,940,520);
  x.save();x.beginPath();x.rect(0,0,660,520);x.clip();
+ const lab=(t,px,py)=>{x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';x.fillText(t,px,py)};
  if($('fill').checked){
   x.fillStyle='rgba(150,150,170,.35)';x.beginPath();x.moveTo(XO,Y(Ro));x.lineTo(XW,Y(Rp));x.lineTo(XW,Y(-Rp));x.lineTo(XO,Y(-Ro));x.closePath();x.fill();
+  let dt=0;
   if(Ru>=0){x.fillStyle='rgba(20,20,30,.95)';x.beginPath();x.moveTo(XO,Y(Ro));x.lineTo(XW,Y(Ru));x.lineTo(XW,Y(-Ru));x.lineTo(XO,Y(-Ro));x.closePath();x.fill();}
-  else{const dt=Ro*d1/(Rl-Ro);x.fillStyle='rgba(20,20,30,.95)';x.beginPath();x.moveTo(XO,Y(Ro));x.lineTo(XO+dt,Y(0));x.lineTo(XO,Y(-Ro));x.closePath();x.fill();
+  else{dt=Ro*d1/(Rl-Ro);x.fillStyle='rgba(20,20,30,.95)';x.beginPath();x.moveTo(XO,Y(Ro));x.lineTo(XO+dt,Y(0));x.lineTo(XO,Y(-Ro));x.closePath();x.fill();
    x.fillStyle='rgba(110,110,130,.45)';x.beginPath();x.moveTo(XO+dt,Y(0));x.lineTo(XW,Y(-Ru));x.lineTo(XW,Y(Ru));x.closePath();x.fill();}
+  // names
+  const t=.72,hp=Ro+(Rp-Ro)*t,hu=Ro+(Ru-Ro)*t;
+  if(Ru>=0){
+   lab('Penumbra',XO+t*d2,hp-hu>=20?Y((hp+hu)/2)+4:Y(hp)-6);
+   if(Ro+(Ru-Ro)*.35>=8)lab('Umbra',XO+.35*d2,Y(0)+4);
+  }else{
+   lab('Penumbra',XO+t*d2,Y(hp)+16);
+   lab('Umbra',XO+dt*.4,Y(0)+4);
+   if(Math.abs(Ru)*.6>=8&&XW-XO-dt>70)lab('Antumbra',XO+dt+(XW-XO-dt)*.55,Y(0)+4);
+  }
  }
  x.strokeStyle='#333';x.lineWidth=1;x.setLineDash([4,6]);x.beginPath();x.moveTo(0,CY);x.lineTo(XW,CY);x.stroke();x.setLineDash([]);
- // light
  const g=x.createRadialGradient(XL,CY,Rl*.2,XL,CY,Rl*2.2);g.addColorStop(0,'rgba(255,240,150,.9)');g.addColorStop(1,'rgba(255,170,0,0)');
  x.fillStyle=g;x.beginPath();x.arc(XL,CY,Rl*2.2,0,7);x.fill();x.fillStyle='#ffe066';x.beginPath();x.arc(XL,CY,Rl,0,7);x.fill();
  x.fillStyle='#fff';x.font='bold 14px Arial';x.textAlign='center';x.fillText('Light source',XL,CY+Math.max(Rl*2.2,60)+12);
- // wall
  x.fillStyle='#d9d4c8';x.fillRect(XW,CY-WALLH,16,2*WALLH);
- // beams
  const P=pts(Rl);let n=0;
  [...sel].sort().forEach(i=>{
   const p=P[i];let lo=1e9,hi=-1e9;
@@ -66,21 +95,17 @@ function draw(){
    x.stroke();
   }
   x.globalAlpha=1;
-  // shadow interval on wall from this point
   for(let ty=CY-WALLH;ty<=CY+WALLH;ty+=1){if(hit(p.x,p.y,ty,XO,Ro)){lo=Math.min(lo,ty);hi=Math.max(hi,ty);}}
   const bx=XW+17+n*5;
   x.fillStyle=COL[i];x.fillRect(bx,CY-WALLH,3,2*WALLH);
   if(hi>=lo){x.fillStyle='#000';x.fillRect(bx,lo,3,hi-lo);}
   n++;
  });
- // object
  x.fillStyle='#4a6fa8';x.beginPath();x.arc(XO,CY,Ro,0,7);x.fill();x.strokeStyle='#9bd';x.lineWidth=1.5;x.stroke();
  x.fillStyle='#fff';x.font='bold 14px Arial';x.textAlign='center';x.fillText('Object',XO,CY+Ro+20);
  x.fillText('Wall',XW+8,CY-WALLH-6);
- // clickable dots
  P.forEach((p,i)=>{x.beginPath();x.arc(p.x,p.y,sel.has(i)?8:6,0,7);x.fillStyle=COL[i];x.fill();x.lineWidth=2;x.strokeStyle=sel.has(i)?'#fff':'#442';x.stroke();});
  x.restore();
- // front view of wall
  const WX=790,WY=CY,S=0.5,PR=Rp*S,UR=Math.abs(Ru)*S;
  x.fillStyle='#d9d4c8';x.fillRect(670,CY-240,260,480);
  x.save();x.beginPath();x.rect(670,CY-240,260,480);x.clip();
@@ -94,9 +119,10 @@ function draw(){
  x.strokeStyle='#444';x.lineWidth=1;x.strokeRect(670,CY-240,260,480);
  $('stat').textContent=sel.size==0
   ?'Click the coloured dots on the light source to send beams from that point.'
-  :'Each beam either reaches the wall or is stopped by the object. The black strip on the wall (right of it) shows where light from that dot cannot reach. Try different dots: the shadow moves.';
+  :'Each beam either reaches the wall or is stopped by the object. The black strip beside the wall shows where light from that dot cannot reach. Try different dots: the shadow moves.';
 }
 c.onclick=e=>{
+ if(level!=1)return;
  const r=c.getBoundingClientRect(),mx=(e.clientX-r.left)*c.width/r.width,my=(e.clientY-r.top)*c.height/r.height;
  const P=pts(+$('rl').value);let best=-1,bd=16;
  P.forEach((p,i)=>{const d=Math.hypot(p.x-mx,p.y-my);if(d<bd){bd=d;best=i;}});
@@ -104,5 +130,77 @@ c.onclick=e=>{
 };
 $('clr').onclick=()=>{sel.clear();draw()};
 $('all').onclick=()=>{K.forEach((k,i)=>sel.add(i));draw()};
-['rl','ro','xo','fill'].forEach(id=>$(id).oninput=draw);draw();
+/* ================= LEVEL 2 ================= */
+const ER=24,MR=7,MO3=100,TILT=25*Math.PI/180,RS=40,DSUN=220,LU=ER*DSUN/(RS-ER);
+const hu=d=>ER*(1-d/LU), hp=d=>ER+(ER+RS)*d/DSUN;
+let ang=+$('se').value,playing=false,spdI=0;const SPD=[['Normal',1],['Slow',.35],['Very slow',.12]];
+function moonSide(th,b){const psi=th+b,u=MO3*Math.cos(psi),w=MO3*Math.sin(psi)*Math.cos(TILT),h=MO3*Math.sin(psi)*Math.sin(TILT);
+ return{xs:u*Math.cos(b)+w*Math.sin(b),zs:-u*Math.sin(b)+w*Math.cos(b),h:h}}
+// 0 none, 1 penumbra, 2 partly umbra, 3 umbra
+function shadowState(q){const d=-q.xs,perp=Math.hypot(q.h,q.zs);if(d<=0)return 0;
+ if(perp<hu(d)-MR)return 3;if(perp<hu(d)+MR)return 2;if(perp<hp(d)+MR)return 1;return 0}
+const MCOL=['#e8e8ee','#b0b0bc','#d98a6a','#8a3a26'];
+function draw2(){
+ const mang=((180+(ang-15)/29.1*360)%360+360)%360,m=mang*Math.PI/180,b=ang*Math.PI/180,q=moonSide(m,b),st=shadowState(q);
+ x.fillStyle='#000';x.fillRect(0,0,1280,560);
+ // ---- left: top view ----
+ const XE=290,YE=270,SX=XE-DSUN;
+ const g=x.createRadialGradient(SX,YE,RS*.3,SX,YE,RS*2);g.addColorStop(0,'rgba(255,240,150,.9)');g.addColorStop(1,'rgba(255,170,0,0)');
+ x.fillStyle=g;x.beginPath();x.arc(SX,YE,RS*2,0,7);x.fill();x.fillStyle='#ffd84a';x.beginPath();x.arc(SX,YE,RS,0,7);x.fill();
+ x.fillStyle='#fff';x.font='bold 15px Arial';x.textAlign='center';x.fillText('Sun',SX,YE+RS+22);
+ const DM=LU+10;
+ x.fillStyle='rgba(150,150,170,.30)';x.beginPath();x.moveTo(XE,YE-ER);x.lineTo(XE+DM,YE-hp(DM));x.lineTo(XE+DM,YE+hp(DM));x.lineTo(XE,YE+ER);x.closePath();x.fill();
+ x.fillStyle='rgba(8,8,16,.95)';x.beginPath();x.moveTo(XE,YE-ER);x.lineTo(XE+LU,YE);x.lineTo(XE,YE+ER);x.closePath();x.fill();
+ x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';
+ x.fillText('Penumbra',XE+250,YE-hp(250)*.55);x.fillText('Umbra',XE+150,YE+4);
+ // Moon's orbit as seen from above
+ x.strokeStyle='rgba(170,170,190,.3)';x.lineWidth=1.5;x.beginPath();
+ for(let k=0;k<=72;k++){const p=moonSide(k*Math.PI/36,b);const sx=XE-p.xs,sy=YE+p.zs;k?x.lineTo(sx,sy):x.moveTo(sx,sy)}x.stroke();
+ // Earth
+ x.fillStyle='#2a6fd6';x.beginPath();x.arc(XE,YE,ER,0,7);x.fill();x.fillStyle='#4aa84a';x.beginPath();x.arc(XE-7,YE-5,9,0,7);x.fill();
+ x.fillStyle='rgba(0,0,20,.65)';x.beginPath();x.arc(XE,YE,ER,-Math.PI/2,Math.PI/2);x.fill();
+ x.fillStyle='#fff';x.fillText('Earth',XE,YE+ER+18);
+ // Moon
+ const mx=XE-q.xs,my=YE+q.zs,toSun=Math.atan2(YE-my,SX-mx);
+ x.fillStyle='#333';x.beginPath();x.arc(mx,my,MR,0,7);x.fill();
+ x.fillStyle=MCOL[st];x.beginPath();x.arc(mx,my,MR,toSun-Math.PI/2,toSun+Math.PI/2);x.fill();
+ x.strokeStyle='#999';x.lineWidth=1;x.beginPath();x.arc(mx,my,MR,0,7);x.stroke();
+ x.fillStyle='#fff';x.font='bold 13px Arial';x.fillText('Moon',mx,my+(q.zs<0?-MR-6:MR+16));
+ x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('TOP VIEW',12,24);
+ x.fillStyle='#8aa';x.font='12px Arial';x.fillText("(Moon's height above or below the shadow is not visible from here)",12,548);
+ // ---- divider ----
+ x.strokeStyle='#555';x.lineWidth=2;x.beginPath();x.moveTo(640,0);x.lineTo(640,560);x.stroke();
+ // ---- right: view from the Sun ----
+ x.save();x.translate(640,0);
+ const VX=320,VY=270,s=2.4,mx2=VX+q.zs*s,my2=VY-q.h*s,behind=q.xs<0,dm=behind?-q.xs:100;
+ const earth=()=>{x.fillStyle='#2a6fd6';x.beginPath();x.arc(VX,VY,ER*s,0,7);x.fill();x.fillStyle='#4aa84a';x.beginPath();x.arc(VX-14,VY-10,22,0,7);x.fill();x.beginPath();x.arc(VX+20,VY+18,15,0,7);x.fill();x.strokeStyle='#9bd';x.lineWidth=1.5;x.beginPath();x.arc(VX,VY,ER*s,0,7);x.stroke();};
+ const moon=()=>{x.fillStyle='#e8e8ee';x.beginPath();x.arc(mx2,my2,MR*s,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke();};
+ const pen=()=>{x.fillStyle='rgba(110,110,135,.42)';x.beginPath();x.arc(VX,VY,hp(dm)*s,0,7);x.fill();x.fillStyle='rgba(0,0,0,.55)';x.beginPath();x.arc(VX,VY,Math.max(0,hu(dm))*s,0,7);x.fill();};
+ if(behind){moon();pen();earth();}else{pen();earth();moon();}
+ x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';
+ x.fillText('Penumbra',VX,VY-hp(dm)*s-8);x.fillText('Earth',VX,VY+ER*s+18);
+ x.fillStyle='#bbb';x.fillText('Moon',mx2,my2-MR*s-8);
+ x.fillStyle='#8aa';x.font='13px Arial';x.fillText("above Earth's orbit level",VX,50);x.fillText("below Earth's orbit level",VX,545);
+ x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('VIEW FROM THE SUN',12,24);
+ x.fillStyle='#8aa';x.font='12px Arial';x.textAlign='right';x.fillText("The umbra is hidden directly behind Earth",628,548);
+ x.restore();
+ const full=Math.abs(((mang-180+540)%360)-180)<7;
+ const msg=['The Moon is not in Earth\'s shadow.','The Moon is in the penumbra only: a faint penumbral eclipse, hard to notice.','The Moon is partly in the umbra: partial lunar eclipse!','The Moon is inside the umbra: total lunar eclipse!'][st];
+ $('stat').textContent=(full?'FULL MOON. ':'')+(q.xs>0?'The Moon is on the Sun side of Earth, so Earth\'s shadow cannot reach it.':msg);
+}
+function draw(){level==1?draw1():draw2()}
+function setLevel(l){level=l;
+ c.width=l==1?940:1280;c.height=l==1?520:560;
+ $('main').style.maxWidth=l==1?'940px':'none';
+ document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',+b.dataset.l==l));
+ document.querySelectorAll('.l1').forEach(e=>e.style.display=l==1?'flex':'none');
+ document.querySelectorAll('.l2').forEach(e=>e.style.display=l==2?'flex':'none');
+ $('msg').textContent=TXT[l];location.hash=l;draw()}
+document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>setLevel(+b.dataset.l));
+['rl','ro','xo','fill'].forEach(id=>$(id).oninput=draw);
+$('se').oninput=()=>{ang=+$('se').value;draw()};
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pause':'Play'};
+$('spd').onclick=()=>{spdI=(spdI+1)%3;$('spd').textContent='Speed: '+SPD[spdI][0]};
+let last=0;function tick(t){if(playing&&level==2){const d=(t-last)*SPD[spdI][1];ang=(ang+d*0.025)%360;$('se').value=ang;draw()}last=t;requestAnimationFrame(tick)}
+setLevel(location.hash=='#2'?2:1);requestAnimationFrame(tick);
 </script></body></html>
