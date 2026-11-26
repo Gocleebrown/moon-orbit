@@ -1,4 +1,4 @@
-<!-- v3: Level 1 umbra/penumbra labels + Level 2 Sun, Earth and Moon -->
+<!-- v4: Level 3 solar eclipse. v3: Level 1 umbra/penumbra labels + Level 2 Sun, Earth and Moon -->
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shadows: umbra and penumbra</title>
@@ -25,7 +25,8 @@ button.p{background:#f28c1a;color:#fff}button.s{background:#3a7bd5;color:#fff}
 <div id="app">
 <div id="side"><h2>Shadows</h2>
 <button class="lv" data-l="1">Level 1<small>Light, object and wall</small></button>
-<button class="lv" data-l="2">Level 2<small>Sun, Earth and Moon</small></button>
+<button class="lv" data-l="2">Level 2<small>Lunar eclipse: Earth's shadow</small></button>
+<button class="lv" data-l="3">Level 3<small>Solar eclipse: the Moon's shadow</small></button>
 </div>
 <div id="main" style="max-width:940px">
 <canvas id="c" width="940" height="520"></canvas>
@@ -42,7 +43,8 @@ const c=document.getElementById('c'),x=c.getContext('2d');
 const $=id=>document.getElementById(id);
 let level=1;
 const TXT={1:"Click the coloured dots on the light source to send beams from that point. Tick 'Show shadow regions' to see the names: the umbra is where the light is completely blocked, and the penumbra is where only some of the light is blocked.",
-2:"Left: the view from above. Earth blocks sunlight and makes a shadow behind it. The dark inner part is the umbra and the grey outer part is the penumbra. Right: the same thing seen from the Sun, where Earth's penumbra is the grey disc and the umbra hides directly behind Earth. The Moon only gets an umbra or penumbra shadow when it passes through them, which is not every month because its orbit is tilted."};
+2:"Left: the view from above. Earth blocks sunlight and makes a shadow behind it. The dark inner part is the umbra and the grey outer part is the penumbra. Right: the same thing seen from the Sun, where Earth's penumbra is the grey disc and the umbra hides directly behind Earth. The Moon only gets an umbra or penumbra shadow when it passes through them, which is not every month because its orbit is tilted.",
+3:"Now the Moon makes the shadow. Left: the view from above. Sunlight is blocked by the Moon, so the Moon has an umbra (dark inner part) and a penumbra (grey outer part), just like Earth did. Right: the view from the Sun. When the Moon is between the Sun and Earth (a New Moon) its shadow lands on Earth as a spot: the penumbra is the big grey spot and the umbra is the tiny dark dot. People inside the penumbra see a partial solar eclipse, and people inside the umbra see a total solar eclipse. The Moon's orbit is tilted, so most months its shadow misses Earth. (Sizes are not to scale.)"};
 /* ================= LEVEL 1 ================= */
 const XL=70,XW=600,CY=260,WALLH=240;
 const K=[-1,-2/3,-1/3,0,1/3,2/3,1];
@@ -186,19 +188,74 @@ function draw2(){
  const msg=['The Moon is not in Earth\'s shadow.','The Moon is in the penumbra only: a faint penumbral eclipse, hard to notice.','The Moon is partly in the umbra: partial lunar eclipse!','The Moon is inside the umbra: total lunar eclipse!'][st];
  $('stat').textContent=(full?'FULL MOON. ':'')+(q.xs>0?'The Moon is on the Sun side of Earth, so Earth\'s shadow cannot reach it.':msg);
 }
-function draw(){level==1?draw1():draw2()}
+
+/* ================= LEVEL 3 (solar eclipse) ================= */
+const RS3=26,DS3=400,MS3=8;
+function solarState(q){const xs=q.xs;if(xs<=0)return{st:0};
+ const DSM=DS3-xs,P=Math.hypot(q.h,q.zs),cs=DS3/DSM,c=P*cs;
+ const hpm=MS3+(MS3+RS3)*xs/DSM,hum=MS3-(RS3-MS3)*xs/DSM;
+ let st=0;if(c<ER+hpm)st=1;if(hum>0&&c<ER+hum)st=2;
+ return{st,c,cs,hpm,hum}}
+function draw3(){
+ const mang=((180+(ang-15)/29.1*360)%360+360)%360,m=mang*Math.PI/180,b=ang*Math.PI/180,q=moonSide(m,b),S=solarState(q);
+ x.fillStyle='#000';x.fillRect(0,0,1280,560);
+ const XE=470,YE=270,SX=XE-DS3;
+ x.save();x.beginPath();x.rect(0,0,640,560);x.clip();
+ const g=x.createRadialGradient(SX,YE,RS3*.3,SX,YE,RS3*2);g.addColorStop(0,'rgba(255,240,150,.9)');g.addColorStop(1,'rgba(255,170,0,0)');
+ x.fillStyle=g;x.beginPath();x.arc(SX,YE,RS3*2,0,7);x.fill();x.fillStyle='#ffd84a';x.beginPath();x.arc(SX,YE,RS3,0,7);x.fill();
+ x.fillStyle='#fff';x.font='bold 15px Arial';x.textAlign='center';x.fillText('Sun',SX,YE+RS3+22);
+ const mx=XE-q.xs,my=YE+q.zs,vx=mx-SX,vy=my-YE,len=Math.hypot(vx,vy),ux=vx/len,uy=vy/len,nx=-uy,ny=ux;
+ const Lum=MS3*len/(RS3-MS3),T=260,hpT=MS3+(MS3+RS3)*T/len;
+ x.fillStyle='rgba(150,150,170,.30)';x.beginPath();x.moveTo(mx+nx*MS3,my+ny*MS3);x.lineTo(mx+ux*T+nx*hpT,my+uy*T+ny*hpT);x.lineTo(mx+ux*T-nx*hpT,my+uy*T-ny*hpT);x.lineTo(mx-nx*MS3,my-ny*MS3);x.closePath();x.fill();
+ x.fillStyle='rgba(30,30,44,.95)';x.beginPath();x.moveTo(mx+nx*MS3,my+ny*MS3);x.lineTo(mx+ux*Lum,my+uy*Lum);x.lineTo(mx-nx*MS3,my-ny*MS3);x.closePath();x.fill();
+ if(q.xs>0){x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';
+  const tp=150,hp=MS3+(MS3+RS3)*tp/len;x.fillText('Penumbra',mx+ux*tp+nx*(hp+14),my+uy*tp+ny*(hp+14)+4);
+  const tu=Math.min(Lum*.5,50);x.fillText('Umbra',mx+ux*tu-nx*(MS3+14),my+uy*tu-ny*(MS3+14)+4);}
+ x.strokeStyle='rgba(170,170,190,.3)';x.lineWidth=1.5;x.beginPath();
+ for(let k=0;k<=72;k++){const p=moonSide(k*Math.PI/36,b);const sx=XE-p.xs,sy=YE+p.zs;k?x.lineTo(sx,sy):x.moveTo(sx,sy)}x.stroke();
+ x.fillStyle='#2a6fd6';x.beginPath();x.arc(XE,YE,ER,0,7);x.fill();x.fillStyle='#4aa84a';x.beginPath();x.arc(XE-7,YE-5,9,0,7);x.fill();
+ x.fillStyle='rgba(0,0,20,.65)';x.beginPath();x.arc(XE,YE,ER,-Math.PI/2,Math.PI/2);x.fill();
+ x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Earth',XE,YE+ER+18);
+ x.fillStyle='#333';x.beginPath();x.arc(mx,my,MS3,0,7);x.fill();
+ const toSun=Math.atan2(YE-my,SX-mx);x.fillStyle='#e8e8ee';x.beginPath();x.arc(mx,my,MS3,toSun-Math.PI/2,toSun+Math.PI/2);x.fill();
+ x.strokeStyle='#999';x.lineWidth=1;x.beginPath();x.arc(mx,my,MS3,0,7);x.stroke();
+ x.fillStyle='#fff';x.font='bold 13px Arial';x.fillText('Moon',mx,my+(q.zs<0?-MS3-6:MS3+16));
+ x.restore();
+ x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('TOP VIEW',12,24);
+ x.strokeStyle='#555';x.lineWidth=2;x.beginPath();x.moveTo(640,0);x.lineTo(640,560);x.stroke();
+ // ---- right: view from the Sun ----
+ x.save();x.translate(640,0);
+ const VX=320,VY=270,s=2.4,front=q.xs>0,mx2=VX+q.zs*s,my2=VY-q.h*s;
+ const earth=()=>{x.fillStyle='#2a6fd6';x.beginPath();x.arc(VX,VY,ER*s,0,7);x.fill();x.fillStyle='#4aa84a';x.beginPath();x.arc(VX-14,VY-10,22,0,7);x.fill();x.beginPath();x.arc(VX+20,VY+18,15,0,7);x.fill();};
+ earth();
+ if(front){x.save();x.beginPath();x.arc(VX,VY,ER*s,0,7);x.clip();
+  const cx=VX+q.zs*S.cs*s,cy=VY-q.h*S.cs*s;
+  x.fillStyle='rgba(10,10,30,.45)';x.beginPath();x.arc(cx,cy,S.hpm*s,0,7);x.fill();
+  if(S.hum>0){x.fillStyle='rgba(0,0,0,.92)';x.beginPath();x.arc(cx,cy,S.hum*s,0,7);x.fill();}
+  x.restore();}
+ x.strokeStyle='#9bd';x.lineWidth=1.5;x.beginPath();x.arc(VX,VY,ER*s,0,7);x.stroke();
+ if(front){x.fillStyle='rgba(232,232,238,.22)';x.beginPath();x.arc(mx2,my2,MS3*s,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke();
+  x.fillStyle='#bbb';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Moon',mx2,my2-MS3*s-8);}
+ x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Earth',VX,VY+ER*s+18);
+ x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('VIEW FROM THE SUN',12,24);
+ x.restore();
+ const nm=Math.abs(((mang+180)%360)-180)<7;
+ const msg=['The Moon\'s shadow misses Earth: no solar eclipse.','Earth is inside the Moon\'s penumbra: a partial solar eclipse for people in that spot.','The Moon\'s umbra touches Earth: a total solar eclipse for people in the umbra spot!'][S.st];
+ $('stat').textContent=(nm?'NEW MOON. ':'')+(q.xs>0?msg:'The Moon is on the far side of Earth, so it cannot block the Sun.');
+}
+function draw(){level==1?draw1():(level==2?draw2():draw3())}
 function setLevel(l){level=l;
  c.width=l==1?940:1280;c.height=l==1?520:560;
  $('main').style.maxWidth=l==1?'940px':'none';
  document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',+b.dataset.l==l));
  document.querySelectorAll('.l1').forEach(e=>e.style.display=l==1?'flex':'none');
- document.querySelectorAll('.l2').forEach(e=>e.style.display=l==2?'flex':'none');
+ document.querySelectorAll('.l2').forEach(e=>e.style.display=l>=2?'flex':'none');
  $('msg').textContent=TXT[l];location.hash=l;draw()}
 document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>setLevel(+b.dataset.l));
 ['rl','ro','xo','fill'].forEach(id=>$(id).oninput=draw);
 $('se').oninput=()=>{ang=+$('se').value;draw()};
 $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pause':'Play'};
 $('spd').onclick=()=>{spdI=(spdI+1)%3;$('spd').textContent='Speed: '+SPD[spdI][0]};
-let last=0;function tick(t){if(playing&&level==2){const d=(t-last)*SPD[spdI][1];ang=(ang+d*0.025)%360;$('se').value=ang;draw()}last=t;requestAnimationFrame(tick)}
-setLevel(location.hash=='#2'?2:1);requestAnimationFrame(tick);
+let last=0;function tick(t){if(playing&&level>=2){const d=(t-last)*SPD[spdI][1];ang=(ang+d*0.025)%360;$('se').value=ang;draw()}last=t;requestAnimationFrame(tick)}
+setLevel(location.hash=='#3'?3:(location.hash=='#2'?2:1));requestAnimationFrame(tick);
 </script></body></html>
