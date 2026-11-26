@@ -172,7 +172,7 @@ function draw2(){
  x.strokeStyle='#555';x.lineWidth=2;x.beginPath();x.moveTo(640,0);x.lineTo(640,560);x.stroke();
  // ---- right: view from the Sun ----
  x.save();x.translate(640,0);
- const VX=320,VY=270,s=2.4,mx2=VX+q.zs*s,my2=VY-q.h*s,behind=q.xs<0,dm=behind?-q.xs:100;
+ const VX=320,VY=270,s=2.4,mx2=VX+q.zs*s,my2=VY-q.h*s,behind=q.xs<0,dm=100;
  const earth=()=>{x.fillStyle='#2a6fd6';x.beginPath();x.arc(VX,VY,ER*s,0,7);x.fill();x.fillStyle='#4aa84a';x.beginPath();x.arc(VX-14,VY-10,22,0,7);x.fill();x.beginPath();x.arc(VX+20,VY+18,15,0,7);x.fill();x.strokeStyle='#9bd';x.lineWidth=1.5;x.beginPath();x.arc(VX,VY,ER*s,0,7);x.stroke();};
  const moon=()=>{x.fillStyle='#e8e8ee';x.beginPath();x.arc(mx2,my2,MR*s,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke();};
  const pen=()=>{x.fillStyle='rgba(110,110,135,.42)';x.beginPath();x.arc(VX,VY,hp(dm)*s,0,7);x.fill();x.fillStyle='rgba(0,0,0,.55)';x.beginPath();x.arc(VX,VY,Math.max(0,hu(dm))*s,0,7);x.fill();};
@@ -180,9 +180,7 @@ function draw2(){
  x.fillStyle='#fff';x.font='bold 13px Arial';x.textAlign='center';
  x.fillText('Penumbra',VX,VY-hp(dm)*s-8);x.fillText('Earth',VX,VY+ER*s+18);
  x.fillStyle='#bbb';x.fillText('Moon',mx2,my2-MR*s-8);
- x.fillStyle='#8aa';x.font='13px Arial';x.fillText("above Earth's orbit level",VX,50);x.fillText("below Earth's orbit level",VX,545);
  x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('VIEW FROM THE SUN',12,24);
- x.fillStyle='#8aa';x.font='12px Arial';x.textAlign='right';x.fillText("The umbra is hidden directly behind Earth",628,548);
  x.restore();
  const full=Math.abs(((mang-180+540)%360)-180)<7;
  const msg=['The Moon is not in Earth\'s shadow.','The Moon is in the penumbra only: a faint penumbral eclipse, hard to notice.','The Moon is partly in the umbra: partial lunar eclipse!','The Moon is inside the umbra: total lunar eclipse!'][st];

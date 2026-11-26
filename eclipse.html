@@ -160,8 +160,7 @@ function sunView(){
  const moon=()=>{x.fillStyle=ic>=1?'#8a3a26':(ic>0?'#d98a6a':'#e8e8ee');x.beginPath();x.arc(mx,my,MR*s,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke();};
  if(behind){moon();earth();}else{earth();moon();}
  x.fillStyle='#fff';x.font='bold 14px Arial';x.textAlign='center';x.fillText('Earth',VX,VY+ER*s+20);
- x.fillStyle='#8aa';x.font='13px Arial';x.fillText("above Earth's orbit level",VX,60);x.fillText("below Earth's orbit level",VX,540);
- x.fillStyle='#bbb';x.font='13px Arial';x.fillText('Moon',mx,my-MR*s-8);
+  x.fillStyle='#bbb';x.font='13px Arial';x.fillText('Moon',mx,my-MR*s-8);
  let st;const full=Math.abs(((mang-180+540)%360)-180)<7;
  if(!behind)st='Moon is in front of Earth, between the Sun and Earth';
  else if(ic>=1)st='Hiding in Earth\'s shadow behind Earth: lunar eclipse!';
