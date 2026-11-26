@@ -1,4 +1,4 @@
-<!-- v6: Level 3 view from Earth. v5: lunar level removed, solar eclipse is Level 2. v4: Level 1 umbra/penumbra labels + Level 2 Sun, Earth and Moon -->
+<!-- v7: Sun/Moon same size in L3, Level 4 size sliders. v6: Level 3 view from Earth. v5: lunar level removed, solar eclipse is Level 2. v4: Level 1 umbra/penumbra labels + Level 2 Sun, Earth and Moon -->
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shadows: umbra and penumbra</title>
@@ -27,6 +27,7 @@ button.p{background:#f28c1a;color:#fff}button.s{background:#3a7bd5;color:#fff}
 <button class="lv" data-l="1">Level 1<small>Light, object and wall</small></button>
 <button class="lv" data-l="2">Level 2<small>Solar eclipse: the Moon's shadow</small></button>
 <button class="lv" data-l="3">Level 3<small>Solar eclipse from Earth</small></button>
+<button class="lv" data-l="4">Level 4<small>Change the Sun and Moon sizes</small></button>
 </div>
 <div id="main" style="max-width:940px">
 <canvas id="c" width="940" height="520"></canvas>
@@ -37,8 +38,11 @@ button.p{background:#f28c1a;color:#fff}button.s{background:#3a7bd5;color:#fff}
 <div class="ctl l1"><span>Position of the object</span><input id="xo" type="range" min="140" max="520" step="1" value="300"></div>
 <div class="ctl l23"><button class="b p" id="play">Play</button><button class="b s" id="spd">Speed: Normal</button></div>
 <div class="ctl l2"><span style="min-width:0">Time of year (Earth's place in its orbit)</span><input id="se" type="range" min="0" max="360" step="0.5" value="40"></div>
-<div class="ctl l3"><span style="min-width:170px">Time (hours)</span><input id="tt" type="range" min="-4" max="4" step="0.01" value="-2"></div>
-<div class="ctl l3"><span style="min-width:170px">Moon's path (up or down)</span><input id="yo" type="range" min="-50" max="50" step="1" value="0"></div>
+<div class="ctl l34"><span style="min-width:170px">Time (hours)</span><input id="tt" type="range" min="-4" max="4" step="0.01" value="-2"></div>
+<div class="ctl l34"><span style="min-width:170px">Moon's path (up or down)</span><input id="yo" type="range" min="-50" max="50" step="1" value="0"></div>
+<div class="ctl l4"><span style="min-width:170px">Size of the Sun (in the sky)</span><input id="sz1" type="range" min="20" max="100" step="0.5" value="60"></div>
+<div class="ctl l4"><span style="min-width:170px">Size of the Moon (in the sky)</span><input id="sz2" type="range" min="20" max="100" step="0.5" value="62"></div>
+<div class="ctl l34"><button class="b" id="seek">Put me in the shadow</button></div>
 <div id="msg"></div>
 </div></div>
 <script>
@@ -47,7 +51,8 @@ const $=id=>document.getElementById(id);
 let level=1;
 const TXT={1:"Click the coloured dots on the light source to send beams from that point. Tick 'Show shadow regions' to see the names: the umbra is where the light is completely blocked, and the penumbra is where only some of the light is blocked.",
 2:"Now the Moon makes the shadow. Left: the view from above. Sunlight is blocked by the Moon, so the Moon has an umbra (dark inner part) and a penumbra (grey outer part). Right: the view from the Sun. When the Moon is between the Sun and Earth (a New Moon) its shadow lands on Earth as a spot: the penumbra is the big grey spot and the umbra is the tiny dark dot. People inside the penumbra see a partial solar eclipse, and people inside the umbra see a total solar eclipse. The Moon's orbit is tilted, so most months its shadow misses Earth. (Sizes are not to scale.)",
-3:"The Moon is now lined up with the Sun and Earth, so its shadow sweeps across Earth. Left: the view from the Sun, with Earth spinning. Right: what you would see from the spot you choose. Click on Earth (left) to choose where you are standing. Press Play, or drag the time slider, and watch the Sun and Moon from there. Try standing in different places: the umbra is a tiny spot, so only people inside it see a total eclipse, people in the penumbra see a partial eclipse, and everyone else sees none. Use 'Moon's path' to move the Moon's shadow up or down."};
+3:"The Moon is now lined up with the Sun and Earth, so its shadow sweeps across Earth. Left: the view from the Sun, with Earth spinning. Right: what you would see from the spot you choose. Click on Earth (left) to choose where you are standing, then press Play or drag the time slider. From Earth the Sun and the Moon look almost exactly the same size, which is why the Moon can just cover the Sun. That also means the umbra is tiny, so only people inside that dot see a total eclipse. People in the penumbra see a partial eclipse, and everyone else sees none. 'Put me in the shadow' moves you to the middle of the shadow, and 'Moon's path' moves the shadow up or down.",
+4:"The same as Level 3, but now you can change how big the Sun and the Moon look from Earth. Make the Moon bigger than the Sun and the umbra grows, so more people see a total eclipse. Make the Moon smaller than the Sun and the umbra disappears: the Moon cannot cover the Sun, and you get an annular eclipse, a ring of Sun left around the Moon. Click on Earth to choose where you stand, and use 'Put me in the shadow' to find the middle of the shadow."};
 /* ================= LEVEL 1 ================= */
 const XL=70,XW=600,CY=260,WALLH=240;
 const K=[-1,-2/3,-1/3,0,1/3,2/3,1];
@@ -127,7 +132,7 @@ function draw1(){
   :'Each beam either reaches the wall or is stopped by the object. The black strip beside the wall shows where light from that dot cannot reach. Try different dots: the shadow moves.';
 }
 c.onclick=e=>{
- if(level==3){const r=c.getBoundingClientRect(),mx=(e.clientX-r.left)*c.width/r.width,my=(e.clientY-r.top)*c.height/r.height;
+ if(level>=3){const r=c.getBoundingClientRect(),mx=(e.clientX-r.left)*c.width/r.width,my=(e.clientY-r.top)*c.height/r.height;
   const dx=(mx-E3X)/R3,dy=-(my-E3Y)/R3;if(dx*dx+dy*dy<1){const z=Math.sqrt(1-dx*dx-dy*dy);obsLat=Math.asin(dy)/D2R;obsLon=Math.atan2(dx,z)/D2R-15*tt;obsLon=((obsLon+540)%360)-180;draw();}return;}
  if(level!=1)return;
  const r=c.getBoundingClientRect(),mx=(e.clientX-r.left)*c.width/r.width,my=(e.clientY-r.top)*c.height/r.height;
@@ -199,8 +204,7 @@ function draw2(){
 
 /* ================= LEVEL 3 (eclipse seen from Earth) ================= */
 let obsLat=0,obsLon=0,tt=-2,yoff=0;
-const XS3=95,DSM3=DS3-XS3,HPM3=MS3+(MS3+RS3)*XS3/DSM3,HUM3=MS3-(RS3-MS3)*XS3/DSM3,CS3=DS3/DSM3;
-const KS=7.4,RSV=KS*(HPM3-HUM3)/2,MMV=KS*(HPM3+HUM3)/2;
+const XS3=95,DSM3=DS3-XS3,CS3=DS3/DSM3;const KS=7.4;let SUNR=60,MOONR=62;
 const CONT=[[5,20,28],[50,15,14],[45,95,33],[45,-100,28],[-15,-60,22],[-25,135,14],[-85,0,16],[72,-40,10],[20,80,10]];
 const D2R=Math.PI/180,E3X=320,E3Y=290,S3=3.5,R3=ER*S3;
 function proj(lat,lon,rot){const p=lat*D2R,l=(lon+rot)*D2R;return{x:Math.cos(p)*Math.sin(l),y:Math.sin(p),z:Math.cos(p)*Math.cos(l)}}
@@ -208,7 +212,7 @@ function overlap(r1,r2,d){if(d>=r1+r2)return 0;if(d<=Math.abs(r1-r2))return Math
  const a=r1*r1*Math.acos((d*d+r1*r1-r2*r2)/(2*d*r1)),b=r2*r2*Math.acos((d*d+r2*r2-r1*r1)/(2*d*r2)),c=.5*Math.sqrt((-d+r1+r2)*(d+r1-r2)*(d-r1+r2)*(d+r1+r2));return a+b-c}
 const STARS=[];for(let i=0;i<70;i++)STARS.push([(i*97%640),(i*53%420),(i%3)+1]);
 function draw3(){
- const rot=15*tt,O=proj(obsLat,obsLon,rot),Cx=14*tt,Cy=yoff;
+ const rot=15*tt,O=proj(obsLat,obsLon,rot),Cx=14*tt,Cy=yoff,RSV=SUNR,MMV=MOONR,HPM3=(RSV+MMV)/KS,HUM3=(MMV-RSV)/KS;
  x.fillStyle='#000';x.fillRect(0,0,1280,560);
  // ---- left: view from the Sun ----
  x.fillStyle='#2a6fd6';x.beginPath();x.arc(E3X,E3Y,R3,0,7);x.fill();
@@ -221,12 +225,12 @@ function draw3(){
    const sx=E3X+px*R3,sy=E3Y-py*R3;k?x.lineTo(sx,sy):x.moveTo(sx,sy);}x.closePath();x.fill();}
  const scx=E3X+Cx*S3,scy=E3Y-Cy*S3;
  x.fillStyle='rgba(10,10,30,.45)';x.beginPath();x.arc(scx,scy,HPM3*S3,0,7);x.fill();
- x.fillStyle='rgba(0,0,0,.92)';x.beginPath();x.arc(scx,scy,HUM3*S3,0,7);x.fill();
+ x.fillStyle=HUM3>0?'rgba(0,0,0,.92)':'rgba(0,0,0,.55)';x.beginPath();x.arc(scx,scy,Math.max(Math.abs(HUM3)*S3,3),0,7);x.fill();
  x.restore();
  x.strokeStyle='#9bd';x.lineWidth=1.5;x.beginPath();x.arc(E3X,E3Y,R3,0,7);x.stroke();
  const mxs=E3X+Cx/CS3*S3,mys=E3Y-Cy/CS3*S3;
- x.fillStyle='rgba(232,232,238,.22)';x.beginPath();x.arc(mxs,mys,MS3*S3,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke();
- x.fillStyle='#bbb';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Moon',mxs,mys-MS3*S3-8);
+ x.fillStyle='rgba(232,232,238,.22)';x.beginPath();x.arc(mxs,mys,MMV/KS*S3,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=2;x.stroke();
+ x.fillStyle='#bbb';x.font='bold 13px Arial';x.textAlign='center';x.fillText('Moon',mxs,mys-MMV/KS*S3-8);
  x.fillStyle='#fff';x.fillText('Earth',E3X,E3Y+R3+22);
  if(O.z>0){const ox=E3X+O.x*R3,oy=E3Y-O.y*R3;x.strokeStyle='#fff';x.lineWidth=3;x.fillStyle='#ff3b3b';x.beginPath();x.arc(ox,oy,6,0,7);x.fill();x.stroke();x.fillStyle='#fff';x.font='bold 13px Arial';x.fillText('You',ox,oy-12);}
  x.fillStyle='#ffd84a';x.font='bold 15px Arial';x.textAlign='left';x.fillText('VIEW FROM THE SUN',12,24);
@@ -238,12 +242,12 @@ function draw3(){
  const sxo=KS*(vx*(-b)+vy*a),syo=KS*(vx*a+vy*b);
  const alt=Math.asin(Math.max(-1,Math.min(1,O.z)))/D2R,night=O.z<=0.02;
  const SXs=320,SYs=470-Math.max(alt,0)/90*330,dd=Math.hypot(sxo,syo);
- const cover=night?0:overlap(RSV,MMV,dd)/(Math.PI*RSV*RSV),total=!night&&dd<=MMV-RSV;
+ const cover=night?0:overlap(RSV,MMV,dd)/(Math.PI*RSV*RSV),total=!night&&dd<=MMV-RSV,annular=!night&&dd<=RSV-MMV;
  if(night){x.fillStyle='#050510';x.fillRect(0,0,640,500);x.fillStyle='#fff';for(const [px,py,r] of STARS)x.fillRect(px,py,r*.8,r*.8);}
- else{const f=1-.93*Math.pow(cover,1.3),mix=(c0,c1)=>Math.round(c1+(c0-c1)*f);
+ else{const f=1-.93*Math.pow(cover,6),mix=(c0,c1)=>Math.round(c1+(c0-c1)*f);
   const gr=x.createLinearGradient(0,0,0,500);gr.addColorStop(0,`rgb(${mix(60,4)},${mix(130,4)},${mix(225,20)})`);gr.addColorStop(1,`rgb(${mix(160,10)},${mix(205,10)},${mix(250,30)})`);
   x.fillStyle=gr;x.fillRect(0,0,640,500);
-  if(cover>.9){x.fillStyle='rgba(255,255,255,'+Math.min(1,(cover-.9)*10)+')';for(const [px,py,r] of STARS)x.fillRect(px,py,r*.8,r*.8);}
+  if(total){x.fillStyle='rgba(255,255,255,.9)';for(const [px,py,r] of STARS)x.fillRect(px,py,r*.8,r*.8);}
   const gl=x.createRadialGradient(SXs,SYs,RSV*.8,SXs,SYs,RSV*3);gl.addColorStop(0,'rgba(255,240,170,'+(.6*(1-cover))+')');gl.addColorStop(1,'rgba(255,240,170,0)');
   x.fillStyle=gl;x.beginPath();x.arc(SXs,SYs,RSV*3,0,7);x.fill();
   x.fillStyle='#ffe066';x.beginPath();x.arc(SXs,SYs,RSV,0,7);x.fill();
@@ -259,23 +263,26 @@ function draw3(){
  let msg;
  if(night)msg='It is night where you are, so you cannot see the Sun.';
  else if(total)msg='TOTAL solar eclipse: you are inside the Moon\'s umbra!';
+ else if(annular)msg='ANNULAR eclipse: the Moon looks too small to cover the Sun, so a ring of Sun is left.';
  else if(cover>.002)msg='Partial solar eclipse: you are inside the penumbra. About '+Math.round(cover*100)+'% of the Sun is covered.';
  else msg='No eclipse here: the Moon\'s shadow is not on you.';
  $('stat').textContent=clock+msg;
 }
 function draw(){level==1?draw1():(level==2?draw2():draw3())}
+function seek(){const px=14*tt/ER,py=yoff/ER;if(px*px+py*py>=1){$('stat').textContent='The Moon\'s shadow is not on Earth at this time.';return}
+ obsLat=Math.asin(py)/D2R;obsLon=Math.atan2(px,Math.sqrt(1-px*px-py*py))/D2R-15*tt;obsLon=((obsLon+540)%360)-180;draw()}
 function setLevel(l){level=l;
  c.width=l==1?940:1280;c.height=l==1?520:560;
  $('main').style.maxWidth=l==1?'940px':'none';
  document.querySelectorAll('.lv').forEach(b=>b.classList.toggle('on',+b.dataset.l==l));
  document.querySelectorAll('.l1').forEach(e=>e.style.display=l==1?'flex':'none');
- document.querySelectorAll('.l2').forEach(e=>e.style.display=l==2?'flex':'none');document.querySelectorAll('.l3').forEach(e=>e.style.display=l==3?'flex':'none');document.querySelectorAll('.l23').forEach(e=>e.style.display=l>=2?'flex':'none');
+ document.querySelectorAll('.l2').forEach(e=>e.style.display=l==2?'flex':'none');document.querySelectorAll('.l34').forEach(e=>e.style.display=l>=3?'flex':'none');document.querySelectorAll('.l4').forEach(e=>e.style.display=l==4?'flex':'none');if(l==3){SUNR=60;MOONR=62}if(l==4){SUNR=+$('sz1').value;MOONR=+$('sz2').value};document.querySelectorAll('.l23').forEach(e=>e.style.display=l>=2?'flex':'none');
  $('msg').textContent=TXT[l];location.hash=l;draw()}
 document.querySelectorAll('.lv').forEach(b=>b.onclick=()=>setLevel(+b.dataset.l));
 ['rl','ro','xo','fill'].forEach(id=>$(id).oninput=draw);
-$('tt').oninput=()=>{tt=+$('tt').value;draw()};$('yo').oninput=()=>{yoff=+$('yo').value;draw()};$('se').oninput=()=>{ang=+$('se').value;draw()};
+$('seek').onclick=seek;$('sz1').oninput=()=>{SUNR=+$('sz1').value;draw()};$('sz2').oninput=()=>{MOONR=+$('sz2').value;draw()};$('tt').oninput=()=>{tt=+$('tt').value;draw()};$('yo').oninput=()=>{yoff=+$('yo').value;draw()};$('se').oninput=()=>{ang=+$('se').value;draw()};
 $('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pause':'Play'};
 $('spd').onclick=()=>{spdI=(spdI+1)%3;$('spd').textContent='Speed: '+SPD[spdI][0]};
 let last=0;function tick(t){if(playing&&level>=2){const d=(t-last)*SPD[spdI][1];if(level==2){ang=(ang+d*0.025)%360;$('se').value=ang}else{tt+=d*0.0007;if(tt>4)tt=-4;$('tt').value=tt}draw()}last=t;requestAnimationFrame(tick)}
-setLevel(location.hash=='#3'?3:(location.hash=='#2'?2:1));requestAnimationFrame(tick);
+setLevel(location.hash=='#4'?4:(location.hash=='#3'?3:(location.hash=='#2'?2:1)));requestAnimationFrame(tick);
 </script></body></html>
